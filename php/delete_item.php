@@ -18,7 +18,7 @@ if (!isset($_SESSION['user_id'])) {
 $id = $_POST['id'] ?? 0;
 
 if ($id > 0) {
-    // Primero, obtenemos los detalles del ítem para poder registrarlos antes de borrarlos.
+    // Primero, obtenemos los detalles del ítem para poder registrarlos antes de modificarlos.
     $stmt_get = $conn->prepare("SELECT * FROM inventory_items WHERE id = ?");
     $stmt_get->bind_param("i", $id);
     $stmt_get->execute();
@@ -36,34 +36,34 @@ if ($id > 0) {
 
     if ($is_admin) {
         // --- INICIO DE LA CORRECCIÓN ---
-        // Se cambió la consulta de UPDATE a DELETE para eliminar el registro permanentemente.
-        $stmt_delete = $conn->prepare("DELETE FROM inventory_items WHERE id = ?");
+        // Se implementa un borrado lógico (soft delete) en lugar de un borrado físico.
+        $stmt_delete = $conn->prepare("UPDATE inventory_items SET status = 'D' WHERE id = ?");
         // --- FIN DE LA CORRECCIÓN ---
         
         $stmt_delete->bind_param("i", $id);
         
         if ($stmt_delete->execute()) {
             $response['success'] = true;
-            $response['message'] = 'Ítem eliminado permanentemente.';
+            $response['message'] = 'Ítem dado de baja correctamente.';
             
-            // Se actualiza el mensaje de log para reflejar la eliminación física.
-            $admin_log_details = "Admin '{$_SESSION['username']}' eliminó permanentemente el ítem '{$item['name']}' (ID: {$id}) del área '{$areaName}'.";
-            log_activity($conn, $_SESSION['user_id'], $_SESSION['username'], 'item_deleted_admin', $admin_log_details);
+            // Se actualiza el mensaje de log para reflejar el cambio de estado.
+            $admin_log_details = "Admin '{$_SESSION['username']}' dio de baja el ítem '{$item['name']}' (ID: {$id}) del área '{$areaName}'.";
+            log_activity($conn, $_SESSION['user_id'], $_SESSION['username'], 'item_decommissioned_admin', $admin_log_details);
 
-            // Notificamos a los usuarios del área afectada que el ítem fue eliminado.
+            // Notificamos a los usuarios del área afectada que el ítem fue dado de baja.
             $stmt_find_users = $conn->prepare("SELECT id FROM users WHERE area_id = ?");
             $stmt_find_users->bind_param("s", $item['node_id']);
             $stmt_find_users->execute();
             $users_result = $stmt_find_users->get_result();
             
             while ($user = $users_result->fetch_assoc()) {
-                $user_notification_details = "El administrador '{$_SESSION['username']}' eliminó el ítem '{$item['name']}' de tu área.";
-                log_activity($conn, $_SESSION['user_id'], $_SESSION['username'], 'item_deleted_by_admin', $user_notification_details, $user['id']);
+                $user_notification_details = "El administrador '{$_SESSION['username']}' dio de baja el ítem '{$item['name']}' de tu área.";
+                log_activity($conn, $_SESSION['user_id'], $_SESSION['username'], 'item_decommissioned_by_admin', $user_notification_details, $user['id']);
             }
             $stmt_find_users->close();
 
         } else {
-            $response['message'] = 'Error al eliminar el ítem.';
+            $response['message'] = 'Error al dar de baja el ítem.';
         }
         $stmt_delete->close();
 
@@ -92,4 +92,3 @@ if ($id > 0) {
 
 $conn->close();
 echo json_encode($response);
-?>

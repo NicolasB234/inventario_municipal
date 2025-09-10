@@ -24,7 +24,6 @@
                     <span class="notification-counter" id="notification-counter">0</span>
                 </button>
 
-                <!-- Nuevo: menú desplegable para Importar / Exportar junto a la campanita -->
                 <div class="header-actions" style="position:relative;">
                     <button id="header-actions-btn" class="header-btn" aria-haspopup="true" aria-expanded="false" title="Acciones de archivos">
                         <i class="fas fa-file"></i>
@@ -124,7 +123,7 @@
     <div id="image-modal" class="modal-overlay" style="display: none;">
         <span class="close-modal" id="close-image-modal">&times;</span>
         <div class="image-modal-container">
-            <img class="image-modal-content" id="modal-image" src="">
+            <img class="image-modal-content" id="modal-image" src="" alt="Imagen del ítem">
             <div class="image-modal-details">
                 <h3 id="modal-item-name"></h3>
                 <p><strong>Descripción:</strong> <span id="modal-item-description"></span></p>
@@ -142,20 +141,20 @@
     <div id="chatbot-container" class="chatbot-container">
         <div class="chatbot-header">
             <h3>Asistente Virtual</h3>
-            <button id="close-chatbot-btn">&times;</button>
+            <button id="close-chatbot-btn" aria-label="Cerrar chat">&times;</button>
         </div>
         <div class="chatbot-body">
             <p>¡Hola! ¿En qué puedo ayudarte?</p>
         </div>
         <div class="chatbot-footer">
             <input type="text" placeholder="Escribe un mensaje...">
-            <button><i class="fas fa-paper-plane"></i></button>
+            <button aria-label="Enviar mensaje"><i class="fas fa-paper-plane"></i></button>
         </div>
     </div>
-    <button id="chatbot-toggle-btn" class="chatbot-toggle-btn">
+    <button id="chatbot-toggle-btn" class="chatbot-toggle-btn" aria-label="Abrir chat">
         <i class="fas fa-comments"></i>
     </button>
-    <script src="js/script.js" type="module"></script>
-    <script src="js/theme-switcher.js"></script>
+    <script src="js/script.js" type="module" defer></script>
+    <script src="js/theme-switcher.js" defer></script>
 </body>
 </html>

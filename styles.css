@@ -285,7 +285,7 @@ body.sidebar-open #sidebar-overlay { opacity: 1; visibility: visible; }
     opacity: 0; visibility: hidden; transform: translateY(-10px);
 }
 .filter-controls-container.visible { opacity: 1; visibility: visible; transform: translateY(0); }
-.filter-row label { margin-bottom: 8px; font-weight: 600; font-size: 0.9em; }
+.filter-row label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 0.9em; }
 .filter-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px; }
 #view-buttons { display: flex; gap: 10px; }
 .view-btn { background-color: #6c757d; padding: 8px 12px; font-size: 0.9em;}
@@ -316,12 +316,17 @@ body.sidebar-open #sidebar-overlay { opacity: 1; visibility: visible; }
 .image-modal-content { max-width: 90vw; max-height: 90vh; display: block; border-radius: var(--radio-borde); box-shadow: 0 5px 20px rgba(0,0,0,0.5); }
 
 /* --- TABLAS --- */
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+}
 #inventory-table, .log-table {
     width: 100%; border-collapse: collapse; margin-top: 20px; background-color: var(--color-superficie);
     border-radius: var(--radio-borde); box-shadow: var(--sombra-suave); overflow: hidden;
 }
 #inventory-table th, #inventory-table td, .log-table th, .log-table td { 
     border-bottom: 1px solid var(--color-borde); padding: 10px 15px; text-align: left; font-size: 0.9em;
+    white-space: nowrap;
 }
 #inventory-table th, .log-table th {
     background-color: #333; color: var(--color-texto-primario);
@@ -361,9 +366,29 @@ body.sidebar-open #sidebar-overlay { opacity: 1; visibility: visible; }
     display: flex; flex-direction: column;
 }
 .gallery-card:hover { transform: translateY(-5px); box-shadow: 0 8px 15px rgba(0,0,0,0.1); }
-.gallery-card-img { width: 100%; height: 160px; object-fit: cover; border-bottom: 1px solid var(--color-borde); cursor: pointer; }
+.gallery-card-img-container {
+    width: 100%;
+    padding-top: 100%; /* Aspect ratio 1:1 */
+    position: relative;
+    border-bottom: 1px solid var(--color-borde);
+    cursor: pointer;
+}
+.gallery-card-img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
 .gallery-card-placeholder { width: 100%; height: 160px; display: flex; align-items: center; justify-content: center; background-color: var(--color-fondo); color: #ccc; font-size: 3em; }
-.gallery-card-title { padding: 15px; font-weight: 600; text-align: center; flex-grow: 1; display: flex; align-items: center; justify-content: center; font-size: 0.9em; }
+.gallery-card-title { padding: 10px; font-weight: 600; text-align: center; flex-grow: 1; display: flex; align-items: center; justify-content: center; font-size: 0.9em; }
+.gallery-card-code {
+    padding: 0 10px 10px;
+    font-size: 0.8em;
+    color: #7f8c8d;
+    text-align: center;
+}
 
 /* --- ESTILOS PARA PÁGINA DE SOLICITUDES --- */
 #requests-page .requests-container, #solicitudes-page .requests-container { padding: 30px; }
@@ -383,7 +408,7 @@ body.sidebar-open #sidebar-overlay { opacity: 1; visibility: visible; }
     font-weight: 700; padding: 5px 12px; border-radius: 20px;
     font-size: 0.85em; color: #fff; text-transform: uppercase; letter-spacing: 0.5px;
 }
-.action-type.delete { background-color: #e74c3c; }
+.action-type.decommission { background-color: #e74c3c; }
 .action-type.edit { background-color: #3498db; }
 .action-type.transfer { background-color: #f39c12; }
 .action-type.import { background-color: #2ecc71; }
@@ -436,7 +461,7 @@ body.dark-mode input, body.dark-mode select, body.dark-mode textarea { backgroun
 body.dark-mode #inventory-table, body.dark-mode .log-table { background-color: var(--color-superficie); }
 body.dark-mode #inventory-table th, body.dark-mode .log-table th { background-color: #3c3c3c; }
 body.dark-mode #inventory-table td, body.dark-mode .log-table td { border-color: var(--color-borde); color: var(--color-texto-secundario); }
-body.dark-mode #inventory-table tbody tr:hover, body.dark-mode .log-table tr:hover { background-color: #3d3d3d; }
+body.dark-mode #inventory-table tbody tr:hover, body.dark-mode .log-table tbody tr:hover { background-color: #3d3d3d; }
 body.dark-mode .log-table tr:nth-child(even) { background-color: #2f2f2f; }
 body.dark-mode #org-nav .node-content:hover, body.dark-mode .filter-controls-container, body.dark-mode #area-search-results .result-item:hover { background-color: #3d3d3d; }
 body.dark-mode .request-header, body.dark-mode .request-footer { background-color: rgba(255,255,255,0.05); }

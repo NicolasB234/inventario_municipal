@@ -42,7 +42,6 @@ try {
     $item_id = $action['item_id'] ?? null;
     $item_name_for_log = '';
     
-    // Si la acción es 'approved', ejecutar la lógica de la acción
     if ($review_status === 'approved') {
         $action_data = json_decode($action['action_data'], true);
         
@@ -52,7 +51,7 @@ try {
                 $item_name_for_log = $action_data['name'] ?? 'ítem editado';
 
                 $stmt_edit = $conn->prepare("UPDATE inventory_items SET name = ?, description = ?, category = ?, quantity = ?, status = ?, encargado = ? WHERE id = ?");
-                $stmt_edit->bind_param("sssssii", $action_data['name'], $action_data['description'], $action_data['category'], $action_data['quantity'], $action_data['status'], $action_data['encargado'], $item_id);
+                $stmt_edit->bind_param("ssssssi", $action_data['name'], $action_data['description'], $action_data['category'], $action_data['quantity'], $action_data['status'], $action_data['encargado'], $item_id);
                 if (!$stmt_edit->execute()) throw new Exception('Error al editar el ítem: ' . $stmt_edit->error);
                 $stmt_edit->close();
 
@@ -62,9 +61,14 @@ try {
             case 'transfer':
                 $action_text = 'traspasar';
                 $item_name_for_log = $action_data['item_name'] ?? 'ítem traspasado';
-
+                
+                // --- INICIO DE LA CORRECCIÓN ---
+                // Se obtiene el nuevo encargado desde los datos de la acción.
+                $new_encargado = $action_data['new_encargado'] ?? 'No Asignado';
                 $stmt_transfer = $conn->prepare("UPDATE inventory_items SET node_id = ?, encargado = ? WHERE id = ?");
-                $stmt_transfer->bind_param("ssi", $action_data['new_node_id'], $action_data['new_encargado'], $item_id);
+                $stmt_transfer->bind_param("ssi", $action_data['destination_node_id'], $new_encargado, $item_id);
+                // --- FIN DE LA CORRECCIÓN ---
+                
                 if (!$stmt_transfer->execute()) throw new Exception('Error al traspasar el ítem: ' . $stmt_transfer->error);
                 $stmt_transfer->close();
 
@@ -75,7 +79,7 @@ try {
                 $action_text = 'dar de baja';
                 $item_name_for_log = $action_data['item_name'] ?? 'ítem dado de baja';
 
-                $stmt_decommission = $conn->prepare("UPDATE inventory_items SET status = 'B' WHERE id = ?");
+                $stmt_decommission = $conn->prepare("UPDATE inventory_items SET status = 'D' WHERE id = ?");
                 $stmt_decommission->bind_param("i", $item_id);
                 if (!$stmt_decommission->execute()) throw new Exception('Error al dar de baja el ítem: ' . $stmt_decommission->error);
                 $stmt_decommission->close();
@@ -88,7 +92,7 @@ try {
         }
         $log_action_type = 'request_approved';
         $log_details = "Su solicitud para {$action_text} el ítem '{$item_name_for_log}' ha sido APROBADA.";
-    } else {
+    } else { // Si es rechazada
         $action_data = json_decode($action['action_data'], true);
         $action_text = match($action['action_type']) {
             'edit' => 'editar',
@@ -126,4 +130,3 @@ try {
 
 $conn->close();
 echo json_encode($response);
-?>

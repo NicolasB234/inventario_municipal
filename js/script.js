@@ -11,6 +11,7 @@ let localNotifications = [];
 let lastNotificationId = 0;
 let lastAdminRequestCount = 0;
 let lastAdminLogId = 0; 
+let pollingInterval; // Para poder detener el polling si es necesario
 
 function addNotificationToList(notif) {
     localNotifications.unshift({
@@ -44,6 +45,10 @@ function shakeBell() {
     }
 }
 
+// Nota de optimización: El polling (consultar cada X segundos) es funcional
+// pero puede ser ineficiente con muchos usuarios. Alternativas más modernas
+// y eficientes incluyen WebSockets o Server-Sent Events (SSE) para una
+// comunicación en tiempo real del servidor al cliente.
 async function fetchUpdates() {
     const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
     const lastId = isAdmin ? lastAdminLogId : lastNotificationId;
@@ -98,6 +103,7 @@ async function fetchUpdates() {
 }
 
 function initializeNotifications() {
+    if (pollingInterval) clearInterval(pollingInterval); // Limpia el intervalo anterior si existe
     fetch(`${PHP_BASE_URL}get_log.php`)
         .then(res => res.json())
         .then(result => {
@@ -110,7 +116,7 @@ function initializeNotifications() {
         .catch(err => console.error("Error al obtener el último ID de log:", err))
         .finally(() => {
             fetchUpdates();
-            setInterval(fetchUpdates, 5000);
+            pollingInterval = setInterval(fetchUpdates, 5000); // 5 segundos
         });
 }
 

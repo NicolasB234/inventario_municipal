@@ -15,6 +15,7 @@ export const statusOptions = [
   { value: 'B', label: 'Bueno' },
   { value: 'M', label: 'Nuevo' },
   { value: 'S', label: 'Regular' },
+  { value: 'D', label: 'De Baja' },
 ];
 
 function getShortNameNodesMap() {
@@ -237,7 +238,6 @@ export function showItemForm(node, item = null) {
     modal.style.display = 'flex';
 }
 
-// ... (El resto del archivo no necesita cambios) ...
 export function closeItemForm() {
     const modal = document.getElementById('modal-agregar-item');
     if (modal) {
@@ -276,6 +276,8 @@ function showTransferForm(node, items) {
     }
     allNodes.sort((a, b) => a.name.localeCompare(b.name));
 
+    // --- INICIO DE LA CORRECCIÓN ---
+    // Se añade el campo para el nuevo encargado.
     modalOverlay.innerHTML = `
         <div class="modal-content" style="width: 500px; cursor: default;">
             <button class="close-modal" id="cancel-transfer-btn-x">&times;</button>
@@ -290,6 +292,10 @@ function showTransferForm(node, items) {
                     <option value="" disabled selected>Seleccione un destino...</option>
                     ${allNodes.map(n => `<option value="${n.id}">${n.name}</option>`).join('')}
                 </select></div>
+                <div class="form-row">
+                    <label for="new-encargado">Nuevo Encargado:</label>
+                    <input type="text" id="new-encargado" name="new_encargado" placeholder="Nombre del nuevo responsable" value="No Asignado" required>
+                </div>
                 <div class="form-row"><label for="transfer-reason">Motivo del Traspaso:</label><textarea id="transfer-reason" name="reason" rows="3" placeholder="Especifique el motivo del traspaso..." required></textarea></div>
                 <div class="form-row" style="flex-direction: row; justify-content: flex-end; gap: 10px;">
                     <button type="button" id="cancel-transfer-btn" class="button">Cancelar</button>
@@ -298,6 +304,7 @@ function showTransferForm(node, items) {
             </form>
         </div>
     `;
+    // --- FIN DE LA CORRECCIÓN ---
 
     document.body.appendChild(modalOverlay);
 

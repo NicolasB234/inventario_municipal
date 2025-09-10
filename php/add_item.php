@@ -1,7 +1,6 @@
 <?php
 require_once 'db_connect.php';
 require_once 'log_activity.php';
-// require_once 'handle_image_upload.php'; // SE ELIMINA ESTA LÍNEA QUE CAUSABA EL ERROR.
 header('Content-Type: application/json');
 session_start();
 
@@ -55,22 +54,25 @@ $description = trim($_POST['description'] ?? '');
 $incorporacion = !empty($_POST['incorporacion']) ? trim($_POST['incorporacion']) : null;
 $status = trim($_POST['status']);
 $encargado = trim($_POST['encargado'] ?? 'No Asignado');
-$imagePath = null; // Se inicializa como nulo.
+$imagePath = null;
 
 // --- Generar el código de ítem único ---
 $codigo_item = generateUniqueCodigoItem($conn);
 
 // --- Manejo de la subida de la imagen ---
-// SE COMENTA ESTA SECCIÓN. Tu sistema actual de imágenes debería manejar esto.
-// Si tu sistema de imágenes actualiza la ruta en la base de datos después,
-// esta implementación funcionará bien.
-/*
+// Aquí iría una lógica más robusta para manejar la subida de imágenes,
+// como renombrar archivos, comprimir imágenes, etc.
 if (isset($_FILES['itemImage']) && $_FILES['itemImage']['error'] === UPLOAD_ERR_OK) {
-    // Aquí deberías llamar a tu función de subida de imágenes
-    // Por ejemplo: $imagePath = tuFuncionDeImagenes($_FILES['itemImage']);
+    $uploadDir = '../uploads/';
+    if (!is_dir($uploadDir)) {
+        mkdir($uploadDir, 0755, true);
+    }
+    $fileName = uniqid() . '-' . basename($_FILES['itemImage']['name']);
+    $targetFile = $uploadDir . $fileName;
+    if (move_uploaded_file($_FILES['itemImage']['tmp_name'], $targetFile)) {
+        $imagePath = 'uploads/' . $fileName;
+    }
 }
-*/
-
 
 // --- Insertar en la base de datos ---
 $sql = "INSERT INTO inventory_items (codigo_item, node_id, name, quantity, category, description, incorporacion, status, imagePath, encargado) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
@@ -114,4 +116,3 @@ $stmt->close();
 $conn->close();
 
 echo json_encode($response);
-?>
