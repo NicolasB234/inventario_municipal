@@ -667,4 +667,41 @@ body.night-mode .notifications-list .notif-area {
 
 /* Cerrar menú al hacer click fuera (comportamiento JS), y pequeña animación */
 .dropdown-menu { opacity: 0; transform: translateY(-6px); transition: opacity .15s ease, transform .15s ease; pointer-events: none; }
-.header-actions.open .dropdown-menu { opacity: 1; transform: translateY(0); pointer-events: auto; }
+.header-actions.open .dropdown-menu { opacity: 1; transform: translateY(0); pointer-events: auto; } 
+/* ... (Estilos existentes) ... */
+
+/* --- INICIO DE LA MODIFICACIÓN: ESTILOS DE PAGINACIÓN --- */
+.pagination-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 0;
+    margin-top: 15px;
+    border-top: 1px solid var(--color-borde);
+}
+
+.pagination-controls span {
+    font-size: 0.95em;
+    font-weight: 600;
+    color: var(--color-texto-secundario);
+}
+
+.pagination-controls button:disabled {
+    background-color: #cccccc;
+    color: #666666;
+    cursor: not-allowed;
+    transform: none;
+}
+
+body.dark-mode .pagination-controls button:disabled {
+    background-color: #444;
+    color: #888;
+}
+
+body.night-mode .pagination-controls button:disabled {
+    background-color: #6b4444;
+    color: #ab8e8e;
+}
+/* --- FIN DE LA MODIFICACIÓN --- */
+
+/* ... (Resto de los estilos) ... */

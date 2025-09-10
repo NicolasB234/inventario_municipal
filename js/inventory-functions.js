@@ -1,6 +1,14 @@
 import { orgStructure } from './org-structure.js';
 
 const API_URL = 'php/';
+const ITEMS_PER_PAGE = 14;
+
+// Estado de la paginación y filtros
+let currentTablePage = 1;
+let totalTableItems = 0;
+let currentGalleryPage = 1;
+let totalGalleryItems = 0;
+let currentFilters = {};
 
 export const categories = [
     'Informática', 'Electrónica', 'Mobiliario', 'Vehículos', 'Equipamiento',
@@ -147,17 +155,17 @@ export function showItemForm(node, item = null) {
     modal.querySelector('h2').textContent = isEditing ? `Editar Ítem: ${item ? item.name : ''}` : 'Agregar Nuevo Ítem';
     form.querySelector('[name="id"]').value = isEditing && item ? item.id : '';
     
-    // --- INICIO DE LA CORRECCIÓN ---
     // Muestra el código del ítem como texto solo si se está editando
-    const codigoDisplayRow = document.getElementById('codigo-display-row');
-    const codigoDisplayText = document.getElementById('codigo-display-text');
-    if (isEditing && item && codigoDisplayRow && codigoDisplayText) {
-        codigoDisplayText.textContent = item.codigo_item || 'N/A';
-        codigoDisplayRow.style.display = 'flex';
-    } else if (codigoDisplayRow) {
-        codigoDisplayRow.style.display = 'none';
+    const codigoDisplayRow = form.querySelector('#codigo-display-row');
+    if (codigoDisplayRow) {
+        if (isEditing && item) {
+            const codigoDisplayText = document.getElementById('codigo-display-text');
+            codigoDisplayText.textContent = item.codigo_item || 'N/A';
+            codigoDisplayRow.style.display = 'flex';
+        } else {
+            codigoDisplayRow.style.display = 'none';
+        }
     }
-    // --- FIN DE LA CORRECCIÓN ---
     
     form.querySelector('[name="existingImagePath"]').value = isEditing && item && item.imagePath ? item.imagePath : '';
     form.querySelector('[name="name"]').value = isEditing && item ? item.name : '';
@@ -201,33 +209,16 @@ export function showItemForm(node, item = null) {
 
     currentFormSubmitHandler = async (event) => {
         event.preventDefault();
-
-        if (!isEditing && (!node || !node.id) && !form.querySelector('[name="node_id"]').value) {
-            alert('Por favor, seleccione un área de destino para el nuevo ítem.');
-            return;
-        }
-
         const formData = new FormData(form);
         const endpoint = isEditing ? 'update_item.php' : 'add_item.php';
 
         try {
             const response = await fetch(API_URL + endpoint, { method: 'POST', body: formData });
-            const text = await response.text();
-            let result = null;
-            try {
-                result = JSON.parse(text);
-            } catch (err) {
-                console.error('Respuesta no JSON del servidor:', text);
-                alert('Respuesta inválida del servidor. Revisa la consola para más detalles.');
-                return;
-            }
-
+            const result = await response.json();
             alert(result.message || 'Operación completada.');
-
             if (result.success) {
                 closeItemForm();
-                const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
-                displayInventory(node, isAdmin);
+                displayInventory(node, sessionStorage.getItem('isAdmin') === 'true', currentTablePage, currentFilters);
             }
         } catch (error) {
             console.error('Error al guardar:', error);
@@ -240,9 +231,7 @@ export function showItemForm(node, item = null) {
 
 export function closeItemForm() {
     const modal = document.getElementById('modal-agregar-item');
-    if (modal) {
-        modal.style.display = 'none';
-    }
+    if (modal) modal.style.display = 'none';
 }
 
 export function setupModalClosers() {
@@ -268,16 +257,11 @@ function showTransferForm(node, items) {
     modalOverlay.id = 'transfer-modal';
 
     const fullPathMap = getFullPathNodesMap();
-    let allNodes = [];
-    for (const [id, name] of fullPathMap.entries()) {
-        if (id !== node.id) {
-            allNodes.push({ id, name });
-        }
-    }
-    allNodes.sort((a, b) => a.name.localeCompare(b.name));
+    const allNodes = Array.from(fullPathMap.entries())
+        .filter(([id]) => id !== node.id)
+        .map(([id, name]) => ({ id, name }))
+        .sort((a, b) => a.name.localeCompare(b.name));
 
-    // --- INICIO DE LA CORRECCIÓN ---
-    // Se añade el campo para el nuevo encargado.
     modalOverlay.innerHTML = `
         <div class="modal-content" style="width: 500px; cursor: default;">
             <button class="close-modal" id="cancel-transfer-btn-x">&times;</button>
@@ -286,7 +270,7 @@ function showTransferForm(node, items) {
                 <div class="form-row"><label>Área Origen:</label><input type="text" value="${node.name}" disabled></div>
                 <div class="form-row"><label for="item-to-transfer">Ítem a Traspasar:</label><select id="item-to-transfer" name="itemId" required>
                     <option value="" disabled selected>Seleccione un ítem...</option>
-                    ${items.map(item => `<option value="${item.id}">${item.name} (ID: ${item.id})</option>`).join('')}
+                    ${items.map(item => `<option value="${item.id}">${item.name} (Código: ${item.codigo_item})</option>`).join('')}
                 </select></div>
                 <div class="form-row"><label for="destination-area">Área de Destino:</label><select id="destination-area" name="destinationNodeId" required>
                     <option value="" disabled selected>Seleccione un destino...</option>
@@ -299,41 +283,31 @@ function showTransferForm(node, items) {
                 <div class="form-row"><label for="transfer-reason">Motivo del Traspaso:</label><textarea id="transfer-reason" name="reason" rows="3" placeholder="Especifique el motivo del traspaso..." required></textarea></div>
                 <div class="form-row" style="flex-direction: row; justify-content: flex-end; gap: 10px;">
                     <button type="button" id="cancel-transfer-btn" class="button">Cancelar</button>
-                    <button type="submit" class="button">Confirmar Traspaso</button>
+                    <button type="submit" class="button">Solicitar Traspaso</button>
                 </div>
             </form>
         </div>
     `;
-    // --- FIN DE LA CORRECCIÓN ---
 
     document.body.appendChild(modalOverlay);
 
     const closeModal = () => modalOverlay.remove();
-    const cancelBtn = document.getElementById('cancel-transfer-btn');
-    const cancelX = document.getElementById('cancel-transfer-btn-x');
-    if (cancelBtn) cancelBtn.onclick = closeModal;
-    if (cancelX) cancelX.onclick = closeModal;
+    document.getElementById('cancel-transfer-btn').onclick = closeModal;
+    document.getElementById('cancel-transfer-btn-x').onclick = closeModal;
     modalOverlay.onclick = (e) => { if (e.target === modalOverlay) closeModal(); };
 
     document.getElementById('transfer-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const formData = new FormData(e.target);
-        if (!confirm(`¿Está seguro de que desea solicitar el traspaso de este ítem?`)) return;
+        if (!confirm('¿Está seguro de que desea solicitar el traspaso de este ítem?')) return;
 
         try {
             const response = await fetch(`${API_URL}transfer_item.php`, { method: 'POST', body: formData });
-            const text = await response.text();
-            let result;
-            try { result = JSON.parse(text); } catch (err) {
-                console.error('Respuesta no JSON en transfer:', text);
-                alert('Respuesta inválida del servidor al transferir. Revisa la consola.');
-                return;
-            }
+            const result = await response.json();
             alert(result.message || 'Operación completada.');
             if (result.success) {
                 closeModal();
-                const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
-                if (isAdmin) displayInventory(node, isAdmin);
+                displayInventory(node, sessionStorage.getItem('isAdmin') === 'true', currentTablePage, currentFilters);
             }
         } catch (error) {
             console.error('Error de conexión:', error);
@@ -344,10 +318,11 @@ function showTransferForm(node, items) {
 
 function exportToXLSX(node, items) {
     if (items.length === 0) {
-        alert('No hay datos en esta área para exportar.');
+        alert('No hay datos en la página actual para exportar.');
         return;
     }
-
+    // Nota: Esta función solo exporta la página actual. Para exportar todos los ítems filtrados,
+    // se necesitaría una nueva función en el backend que devuelva todos los resultados sin paginación.
     const dataToExport = items.map(item => ({
         'codigo_item': item.codigo_item || '',
         nombre: item.name,
@@ -363,13 +338,12 @@ function exportToXLSX(node, items) {
     const worksheet = XLSX.utils.json_to_sheet(dataToExport);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Inventario");
-    XLSX.writeFile(workbook, `inventario_${node.id || 'global'}.xlsx`);
+    XLSX.writeFile(workbook, `inventario_${node.id || 'global'}_pag_${currentTablePage}.xlsx`);
 }
 
-export async function displayInventory(node, isAdmin = false) {
-    // guardamos contexto global para acciones de header (import/export)
-    window.currentInventoryContext = { node, items: null, isAdmin };
-
+// --- INICIO DE LA MODIFICACIÓN ---
+export async function displayInventory(node, isAdmin = false, page = 1, filters = {}) {
+    currentFilters = filters; // Guardar los filtros actuales
     const tableView = document.getElementById('table-view');
     const galleryView = document.getElementById('gallery-view');
 
@@ -378,46 +352,49 @@ export async function displayInventory(node, isAdmin = false) {
         const galleryContainer = galleryView.querySelector('#gallery-container');
         if (galleryContainer) galleryContainer.innerHTML = '<p>Cargando galería...</p>';
     }
+    
+    // Construir la URL con los parámetros
+    const params = new URLSearchParams({
+        node_id: node.id || '',
+        page: page,
+        limit: ITEMS_PER_PAGE,
+        ...filters // Añadir los filtros al objeto de parámetros
+    });
 
     try {
-        const response = await fetch(`${API_URL}get_inventory.php?node_id=${encodeURIComponent(node.id || '')}`);
-        const text = await response.text();
-        let result;
-        try { 
-            result = JSON.parse(text);
-        } catch (err) {
-            console.error('Respuesta no JSON en get_inventory:', text);
-            if (tableView) tableView.innerHTML = '<p>Error: respuesta inválida del servidor. Revisa la consola.</p>';
-            return;
-        }
+        const response = await fetch(`${API_URL}get_inventory.php?${params.toString()}`);
+        const result = await response.json();
 
         if (result.success) {
-            // actualizamos contexto con items recibidos
             window.currentInventoryContext = { node, items: result.data, isAdmin };
-            setupInventoryUI(node, result.data, isAdmin);
+            if (!document.getElementById('add-item-btn')) {
+                setupInventoryUI(node, result.data, isAdmin);
+            }
+            
+            currentTablePage = page;
+            totalTableItems = result.total;
             renderTable(node, result.data, isAdmin);
-            renderGallery(result.data, isAdmin);
+
+            currentGalleryPage = page;
+            totalGalleryItems = result.total;
+            renderGallery(node, result.data, isAdmin);
         } else {
             const errorMessage = `<p>Error al cargar el inventario: ${result.message}</p>`;
             if (tableView) tableView.innerHTML = errorMessage;
-            const galleryContainer = document.getElementById('gallery-container');
-            if (galleryContainer) galleryContainer.innerHTML = errorMessage;
-            const controls = document.getElementById('global-controls-container');
-            if (controls) controls.innerHTML = '';
+            if (galleryView) galleryView.querySelector('#gallery-container').innerHTML = errorMessage;
         }
     } catch (error) {
         console.error('Error al obtener el inventario:', error);
         if (tableView) tableView.innerHTML = '<p>Error de conexión al cargar el inventario.</p>';
-        const galleryContainer = document.getElementById('gallery-container');
-        if (galleryContainer) galleryContainer.innerHTML = '<p>Error de conexión al cargar el inventario.</p>';
+        if (galleryView) galleryView.querySelector('#gallery-container').innerHTML = '<p>Error de conexión al cargar el inventario.</p>';
     }
 }
+// --- FIN DE LA MODIFICACIÓN ---
 
 function setupInventoryUI(node, items, isAdmin) {
     const controlsContainer = document.getElementById('global-controls-container');
     if (!controlsContainer) return;
 
-    // Guardar contexto global (por si se llama directamente)
     window.currentInventoryContext = { node, items, isAdmin };
 
     controlsContainer.innerHTML = `
@@ -427,7 +404,7 @@ function setupInventoryUI(node, items, isAdmin) {
             <button id="toggle-filters-btn"><i class="fas fa-filter"></i> Mostrar Filtros</button>
         </div>
         <div class="filter-controls-container">
-            <div class="filter-row"><label for="filter-id">Buscar por codigo_Item:</label><input type="text" id="filter-id" placeholder="Código del ítem"></div>
+            <div class="filter-row"><label for="filter-codigo">Buscar por Código:</label><input type="text" id="filter-codigo" placeholder="Código del ítem"></div>
             <div class="filter-row"><label for="filter-name">Buscar por Nombre:</label><input type="text" id="filter-name" placeholder="Nombre del ítem"></div>
             <div class="filter-row"><label for="filter-category">Categoría:</label><select id="filter-category"><option value="">Todas</option>${categories.map(cat => `<option value="${cat}">${cat}</option>`).join('')}</select></div>
             <div class="filter-row"><label for="filter-status">Estado:</label><select id="filter-status"><option value="">Todos</option>${statusOptions.map(option => `<option value="${option.value}">${option.label}</option>`).join('')}</select></div>
@@ -441,7 +418,11 @@ function setupInventoryUI(node, items, isAdmin) {
     `;
 
     document.getElementById("add-item-btn").addEventListener('click', () => showItemForm(node, null));
-    document.getElementById("transfer-item-btn").addEventListener('click', () => showTransferForm(node, items));
+    document.getElementById("transfer-item-btn").addEventListener('click', () => {
+        const ctx = window.currentInventoryContext || {};
+        showTransferForm(node, ctx.items || []);
+    });
+    
     setupHeaderActions();
 
     const filterControls = controlsContainer.querySelector('.filter-controls-container');
@@ -452,130 +433,99 @@ function setupInventoryUI(node, items, isAdmin) {
             ? '<i class="fas fa-eye-slash"></i> Ocultar Filtros'
             : '<i class="fas fa-filter"></i> Mostrar Filtros';
     });
-
+    
+    // --- INICIO DE LA MODIFICACIÓN ---
     document.getElementById('apply-filters-btn').addEventListener('click', () => {
         const filters = {
-            id: document.getElementById('filter-id').value.trim(),
-            name: document.getElementById('filter-name').value.toLowerCase().trim(),
-            category: document.getElementById('filter-category').value,
-            status: document.getElementById('filter-status').value,
-            dateFrom: document.getElementById('filter-date-from').value,
-            dateTo: document.getElementById('filter-date-to').value,
+            filter_codigo: document.getElementById('filter-codigo').value.trim(),
+            filter_name: document.getElementById('filter-name').value.trim(),
+            filter_category: document.getElementById('filter-category').value,
+            filter_status: document.getElementById('filter-status').value,
+            filter_date_from: document.getElementById('filter-date-from').value,
+            filter_date_to: document.getElementById('filter-date-to').value,
         };
-        const filteredItems = items.filter(item => {
-            const itemDate = item.incorporacion ? new Date(item.incorporacion) : null;
-            const fromDate = filters.dateFrom ? new Date(filters.dateFrom) : null;
-            const toDate = filters.dateTo ? new Date(filters.dateTo) : null;
-            if(itemDate) itemDate.setUTCHours(0, 0, 0, 0);
-            if(fromDate) fromDate.setUTCHours(0, 0, 0, 0);
-            if(toDate) toDate.setUTCHours(0, 0, 0, 0);
-
-            return (!filters.id || String(item.id).includes(filters.id)) &&
-                   (!filters.name || item.name.toLowerCase().includes(filters.name)) &&
-                   (!filters.category || item.category === filters.category) &&
-                   (!filters.status || item.status === filters.status) &&
-                   (!fromDate || (itemDate && itemDate >= fromDate)) &&
-                   (!toDate || (itemDate && itemDate <= toDate));
-        });
-        renderTable(node, filteredItems, isAdmin);
-        renderGallery(filteredItems, isAdmin);
+        // Al aplicar un filtro, siempre volvemos a la página 1
+        displayInventory(node, isAdmin, 1, filters);
     });
 
     document.getElementById('reset-filters-btn').addEventListener('click', () => {
         filterControls.querySelectorAll('input, select').forEach(el => el.value = '');
-        renderTable(node, items, isAdmin);
-        renderGallery(items, isAdmin);
+        // Al limpiar, volvemos a la página 1 sin filtros
+        displayInventory(node, isAdmin, 1, {});
     });
+    // --- FIN DE LA MODIFICACIÓN ---
 }
 
 function setupHeaderActions() {
     if (window.headerActionsInitialized) return;
     window.headerActionsInitialized = true;
 
-    const init = () => {
-        const headerBtn = document.getElementById('header-actions-btn');
-        const headerMenu = document.getElementById('header-actions-menu');
-        const headerWrapper = headerBtn ? headerBtn.closest('.header-actions') || headerBtn.parentElement : null;
-        const importBtn = document.getElementById('import-btn-header');
-        const fileInput = document.getElementById('xlsx-file-input-header');
-        const exportXlsxBtn = document.getElementById('export-xlsx-header');
-        const exportDocxBtn = document.getElementById('export-docx-header');
+    const headerBtn = document.getElementById('header-actions-btn');
+    const headerMenu = document.getElementById('header-actions-menu');
+    const headerWrapper = headerBtn ? headerBtn.closest('.header-actions') : null;
+    const importBtn = document.getElementById('import-btn-header');
+    const fileInput = document.getElementById('xlsx-file-input-header');
+    const exportXlsxBtn = document.getElementById('export-xlsx-header');
+    const exportDocxBtn = document.getElementById('export-docx-header');
 
-        if (!headerBtn || !headerWrapper || !headerMenu) {
-            return;
-        }
+    if (!headerBtn || !headerWrapper || !headerMenu) {
+        window.headerActionsInitialized = false;
+        return;
+    }
 
+    const closeMenu = () => {
         headerWrapper.classList.remove('open');
         headerBtn.setAttribute('aria-expanded', 'false');
         headerMenu.style.display = 'none';
-
-        headerBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const isOpen = headerWrapper.classList.toggle('open');
-            headerBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-            headerMenu.style.display = isOpen ? 'flex' : 'none';
-        });
-
-        document.addEventListener('click', (e) => {
-            if (!headerWrapper.contains(e.target)) {
-                headerWrapper.classList.remove('open');
-                headerBtn.setAttribute('aria-expanded', 'false');
-                headerMenu.style.display = 'none';
-            }
-        });
-
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                headerWrapper.classList.remove('open');
-                headerBtn.setAttribute('aria-expanded', 'false');
-                headerMenu.style.display = 'none';
-            }
-        });
-
-        if (importBtn && fileInput) {
-            importBtn.addEventListener('click', () => fileInput.click());
-            fileInput.addEventListener('change', async (event) => {
-                const file = event.target.files[0];
-                if (!file) return;
-                await handleXlsxImportFile(file);
-                fileInput.value = '';
-                headerWrapper.classList.remove('open');
-                headerMenu.style.display = 'none';
-            });
-        }
-
-        if (exportXlsxBtn) {
-            exportXlsxBtn.addEventListener('click', () => {
-                const ctx = window.currentInventoryContext || {};
-                if (!ctx.items || ctx.items.length === 0) {
-                    alert('No hay datos para exportar en la vista actual.');
-                    headerWrapper.classList.remove('open');
-                    headerMenu.style.display = 'none';
-                    return;
-                }
-                exportToXLSX(ctx.node || { id: 'global' }, ctx.items);
-                headerWrapper.classList.remove('open');
-                headerMenu.style.display = 'none';
-            });
-        }
-
-        if (exportDocxBtn) {
-            exportDocxBtn.addEventListener('click', () => {
-                if (typeof exportToDOCX === 'function') {
-                    const ctx = window.currentInventoryContext || {};
-                    exportToDOCX(ctx.node || { id: 'global' }, ctx.items || []);
-                } else {
-                    alert('Exportar a DOCX no está implementado aún.');
-                }
-                headerWrapper.classList.remove('open');
-                headerMenu.style.display = 'none';
-            });
-        }
     };
 
-    try { init(); } catch (e) { /* ignore */ }
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init, { once: true });
+    headerBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = headerWrapper.classList.toggle('open');
+        headerBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        headerMenu.style.display = isOpen ? 'flex' : 'none';
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!headerWrapper.contains(e.target)) {
+            closeMenu();
+        }
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeMenu();
+        }
+    });
+
+    if (importBtn && fileInput) {
+        importBtn.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+            await handleXlsxImportFile(file);
+            fileInput.value = '';
+            closeMenu();
+        });
+    }
+
+    if (exportXlsxBtn) {
+        exportXlsxBtn.addEventListener('click', () => {
+            const ctx = window.currentInventoryContext || {};
+            if (!ctx.items || ctx.items.length === 0) {
+                alert('No hay datos para exportar en la vista actual.');
+            } else {
+                exportToXLSX(ctx.node || { id: 'global' }, ctx.items);
+            }
+            closeMenu();
+        });
+    }
+
+    if (exportDocxBtn) {
+        exportDocxBtn.addEventListener('click', () => {
+            alert('La funcionalidad de exportar a DOCX estará disponible próximamente.');
+            closeMenu();
+        });
     }
 }
 
@@ -618,16 +568,12 @@ async function handleXlsxImportFile(file) {
                         } else {
                             newRow.incorporacion = null;
                         }
-                    } else if (lowerKey.startsWith('imagen') || lowerKey.startsWith('image') || lowerKey.startsWith('rutaimagen') || lowerKey.startsWith('imagepath')) {
+                    } else if (lowerKey.startsWith('imagen') || lowerKey.startsWith('image')) {
                         let img = row[key] ? String(row[key]).trim() : '';
-                        if (img) {
-                            if (!/^https?:\/\//i.test(img) && !img.startsWith('/') && !img.toLowerCase().startsWith('uploads/')) {
-                                img = `uploads/${img}`;
-                            }
-                            newRow.imagePath = img;
-                        } else {
-                            newRow.imagePath = null;
+                        if (img && !/^https?:\/\//i.test(img) && !img.startsWith('/')) {
+                            img = `uploads/${img}`;
                         }
+                        newRow.imagePath = img || null;
                     } else if (lowerKey.startsWith('estado')) newRow.estado = row[key];
                     else if (lowerKey.startsWith('area')) newRow.area = row[key];
                     else if (lowerKey.startsWith('encargado')) newRow.encargado = row[key];
@@ -635,28 +581,14 @@ async function handleXlsxImportFile(file) {
                 return newRow;
             });
 
-        // envío al servidor
         const response = await fetch(`${API_URL}bulk_import.php`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(mappedJson)
         });
 
-        const text = await response.text();
-        let result;
-        try { result = JSON.parse(text); } catch (err) {
-            console.error('Respuesta inválida desde bulk_import.php:', text);
-            const openHtml = confirm('El servidor devolvió una respuesta no JSON (posible error PHP). ¿Deseas abrirla en una nueva pestaña para revisar?');
-            if (openHtml) { const w = window.open(); if (w) { w.document.open(); w.document.write(text); w.document.close(); } }
-            return;
-        }
-
-        if (!response.ok) {
-            alert(result.message || ('Error del servidor: ' + (response.statusText || response.status)));
-            return;
-        }
-
-        alert(result.message || 'Importación completada.');
+        const result = await response.json();
+        alert(result.message || 'Proceso de importación finalizado.');
         if (result.success) {
             const ctx = window.currentInventoryContext || {};
             displayInventory(ctx.node || { id: '' }, ctx.isAdmin || false);
@@ -670,40 +602,35 @@ async function handleXlsxImportFile(file) {
 function renderTable(node, items, isAdmin) {
     const tableContainer = document.getElementById('table-view');
     if (!tableContainer) return;
-    tableContainer.innerHTML = '';
 
-    if (!items || items.length === 0) {
-        tableContainer.innerHTML = '<p>No hay ítems en esta área o no coinciden con los filtros.</p>';
+    if (totalTableItems === 0 && Object.keys(currentFilters).length === 0) {
+        tableContainer.innerHTML = '<p>No hay ítems en esta área.</p>';
         return;
     }
 
-    tableContainer.innerHTML = `
+    const totalPages = Math.ceil(totalTableItems / ITEMS_PER_PAGE);
+
+    let tableHTML = `
         <div class="table-responsive">
             <table id="inventory-table" class="inventory-table">
                 <thead><tr>
-                    <th>codigo_Item</th>
-                    <th>Nombre</th>
-                    <th>Cantidad</th>
-                    <th>Categoría</th>
-                    <th>Descripción</th>
-                    <th>Incorporación</th>
-                    <th>Estado</th>
-                    <th>Área</th>
-                    <th>Encargado</th>
-                    <th>Acciones</th>
+                    <th>Código</th><th>Nombre</th><th>Cantidad</th><th>Categoría</th>
+                    <th>Descripción</th><th>Incorporación</th><th>Estado</th><th>Área</th>
+                    <th>Encargado</th><th>Acciones</th>
                 </tr></thead>
                 <tbody>
-                    ${items.map(item => `
+                    ${items.length === 0 ? `<tr><td colspan="10" style="text-align:center;">No se encontraron ítems con los filtros aplicados.</td></tr>` :
+                    items.map(item => `
                         <tr>
-                            <td>${item.codigo_item || item.id || ''}</td>
+                            <td>${item.codigo_item || ''}</td>
                             <td>${item.name || ''}</td>
                             <td>${item.quantity || 0}</td>
                             <td>${item.category || ''}</td>
                             <td>${item.description || ''}</td>
-                            <td>${item.incorporacion || 'No especificada'}</td>
-                            <td>${statusOptions.find(s => s.value === item.status)?.label || 'Desconocido'}</td>
-                            <td>${nodesMap.get(item.node_id) || (item.area || 'N/A')}</td>
-                            <td>${item.encargado || 'No Asignado'}</td>
+                            <td>${item.incorporacion || 'N/A'}</td>
+                            <td>${statusOptions.find(s => s.value === item.status)?.label || 'N/A'}</td>
+                            <td>${nodesMap.get(item.node_id) || 'N/A'}</td>
+                            <td>${item.encargado || 'N/A'}</td>
                             <td class="actions">
                                 <button class="edit-btn" data-item-id="${item.id}"><i class="fas fa-edit"></i></button>
                                 <button class="delete-btn" data-item-id="${item.id}" title="Dar de baja"><i class="fas fa-arrow-down"></i></button>
@@ -715,70 +642,105 @@ function renderTable(node, items, isAdmin) {
         </div>
     `;
 
+    if (totalPages > 1) {
+        tableHTML += `
+            <div class="pagination-controls">
+                <button id="prev-table-page" class="button" ${currentTablePage === 1 ? 'disabled' : ''}>Anterior</button>
+                <span>Página ${currentTablePage} de ${totalPages}</span>
+                <button id="next-table-page" class="button" ${currentTablePage >= totalPages ? 'disabled' : ''}>Siguiente</button>
+            </div>
+        `;
+    }
+    
+    tableContainer.innerHTML = tableHTML;
+
+    if (totalPages > 1) {
+        document.getElementById('prev-table-page').onclick = () => {
+            if (currentTablePage > 1) displayInventory(node, isAdmin, currentTablePage - 1, currentFilters);
+        };
+        document.getElementById('next-table-page').onclick = () => {
+            if (currentTablePage < totalPages) displayInventory(node, isAdmin, currentTablePage + 1, currentFilters);
+        };
+    }
+
     tableContainer.querySelectorAll('.edit-btn').forEach(button => {
-        button.addEventListener('click', () => {
+        button.onclick = () => {
             const itemToEdit = items.find(i => i.id == button.dataset.itemId);
             showItemForm(node, itemToEdit);
-        });
+        };
     });
 
     tableContainer.querySelectorAll('.delete-btn').forEach(button => {
-        button.addEventListener('click', async () => {
+        button.onclick = async () => {
             const itemToDelete = items.find(i => i.id == button.dataset.itemId);
-            if (!itemToDelete) return;
-            if (confirm(`¿Estás seguro de que deseas solicitar la BAJA del ítem "${itemToDelete.name}"? Esta acción no se puede deshacer.`)) {
+            if (itemToDelete && confirm(`¿Estás seguro de que deseas solicitar la BAJA del ítem "${itemToDelete.name}"?`)) {
                 try {
                     const formData = new FormData();
                     formData.append('id', itemToDelete.id);
-
                     const response = await fetch(API_URL + 'delete_item.php', { method: 'POST', body: formData });
-                    const text = await response.text();
-                    let result;
-                    try { result = JSON.parse(text); } catch (err) {
-                        console.error('Respuesta no JSON en delete_item:', text);
-                        alert('Respuesta inválida del servidor. Revisa la consola.');
-                        return;
-                    }
+                    const result = await response.json();
                     alert(result.message || 'Operación completada.');
-                    if (result.success) displayInventory(node, isAdmin);
+                    if (result.success) {
+                        displayInventory(node, isAdmin, currentTablePage, currentFilters);
+                    }
                 } catch (error) {
-                    console.error('Error al intentar dar de baja el ítem:', error);
-                    alert('Error de conexión al procesar la solicitud de baja.');
+                    console.error('Error al dar de baja:', error);
+                    alert('Error de conexión al procesar la solicitud.');
                 }
             }
-        });
+        };
     });
 }
 
-function renderGallery(items, isAdmin) {
-    const galleryContainer = document.getElementById('gallery-container');
-    if (!galleryContainer) return;
+function renderGallery(node, items, isAdmin) {
+    const galleryView = document.getElementById('gallery-view');
+    const galleryContainer = galleryView.querySelector('#gallery-container');
+    if (!galleryContainer || !galleryView) return;
 
     const itemsWithImages = items.filter(item => item.imagePath);
+    const totalPages = Math.ceil(totalGalleryItems / ITEMS_PER_PAGE);
 
-    if (itemsWithImages.length === 0) {
-        galleryContainer.innerHTML = items.length > 0
-            ? '<p>Ningún ítem en esta vista tiene una imagen asociada.</p>'
-            : '<p>No hay ítems para mostrar en esta área.</p>';
-        return;
+    if (totalGalleryItems === 0 && Object.keys(currentFilters).length === 0) {
+        galleryContainer.innerHTML = '<p>No hay ítems en esta área.</p>';
+    } else if (items.length === 0) {
+        galleryContainer.innerHTML = '<p>No se encontraron ítems con los filtros aplicados en esta página.</p>';
+    } else if (itemsWithImages.length === 0) {
+        galleryContainer.innerHTML = '<p>No hay ítems con imágenes para mostrar en esta página.</p>';
+    } else {
+        galleryContainer.innerHTML = itemsWithImages.map(item => `
+            <div class="gallery-card" 
+                 data-id="${item.id}" data-codigo="${item.codigo_item || ''}" data-name="${item.name}" 
+                 data-description="${item.description || 'Sin descripción.'}" data-category="${item.category || ''}"
+                 data-quantity="${item.quantity || 0}" data-status="${statusOptions.find(s => s.value === item.status)?.label || 'N/A'}"
+                 data-date="${item.incorporacion || 'N/A'}" data-img-src="${item.imagePath}">
+                <div class="gallery-card-img-container">
+                    <img src="${item.imagePath}" alt="${item.name}" class="gallery-card-img" loading="lazy">
+                </div>
+                <div class="gallery-card-title">${item.name}</div>
+                <div class="gallery-card-code">Código: ${item.codigo_item}</div>
+            </div>
+        `).join('');
     }
 
-    galleryContainer.innerHTML = itemsWithImages.map(item => `
-        <div class="gallery-card" 
-             data-id="${item.id}"
-             data-codigo="${item.codigo_item || item.id || ''}"
-             data-name="${item.name}" 
-             data-description="${item.description || 'Sin descripción.'}" 
-             data-category="${item.category || ''}"
-             data-quantity="${item.quantity || 0}"
-             data-status="${statusOptions.find(s => s.value === item.status)?.label || 'Desconocido'}"
-             data-date="${item.incorporacion || 'No especificada'}"
-             data-img-src="${item.imagePath}">
-            <div class="gallery-card-img-container">
-                <img src="${item.imagePath}" alt="${(item.codigo_item ? item.codigo_item + ' - ' : '')}${item.name}" class="gallery-card-img">
-            </div>
-            <div class="gallery-card-title">${item.name}</div>
-            <div class="gallery-card-code">Código: ${item.codigo_item || item.id || ''}</div>
-        </div>
-    `).join('');
+    let paginationControls = galleryView.querySelector('.pagination-controls');
+    if (paginationControls) paginationControls.remove();
+    
+    if (totalPages > 1) {
+        paginationControls = document.createElement('div');
+        paginationControls.className = 'pagination-controls';
+        galleryView.appendChild(paginationControls);
+        
+        paginationControls.innerHTML = `
+            <button id="prev-gallery-page" class="button" ${currentGalleryPage === 1 ? 'disabled' : ''}>Anterior</button>
+            <span>Página ${currentGalleryPage} de ${totalPages}</span>
+            <button id="next-gallery-page" class="button" ${currentGalleryPage >= totalPages ? 'disabled' : ''}>Siguiente</button>
+        `;
+
+        document.getElementById('prev-gallery-page').onclick = () => {
+            if (currentGalleryPage > 1) displayInventory(node, isAdmin, currentGalleryPage - 1, currentFilters);
+        };
+        document.getElementById('next-gallery-page').onclick = () => {
+            if (currentGalleryPage < totalPages) displayInventory(node, isAdmin, currentGalleryPage + 1, currentFilters);
+        };
+    }
 }
