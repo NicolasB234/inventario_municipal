@@ -5,6 +5,12 @@ export const orgStructure = [
         type: 'intendencia',
         children: [
             {
+                id: 'unclassified',
+                name: 'Área no reconocida / A clasificar',
+                type: 'area',
+                children: []
+            },
+            {
                 id: 'sec-gobierno',
                 name: 'Secretaría de Gobierno y Coordinación',
                 type: 'secretaria',

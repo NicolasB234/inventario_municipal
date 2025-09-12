@@ -3,18 +3,31 @@ import { orgStructure } from './org-structure.js';
 const API_URL = 'php/';
 const ITEMS_PER_PAGE = 14;
 
-// Estado de la paginación y filtros
+let dynamicCategories = []; 
+let areCategoriesLoaded = false;
+
+async function loadCategories() {
+    if (areCategoriesLoaded) return;
+    try {
+        const response = await fetch(`${API_URL}get_categories.php`);
+        const result = await response.json();
+        if (result.success) {
+            dynamicCategories = result.data;
+            areCategoriesLoaded = true;
+        } else {
+            console.error("No se pudieron cargar las categorías desde el servidor.");
+        }
+    } catch (error) {
+        console.error("Error de red al cargar las categorías:", error);
+    }
+}
+// --- FIN DE LA MODIFICACIÓN ---
+
 let currentTablePage = 1;
 let totalTableItems = 0;
 let currentGalleryPage = 1;
 let totalGalleryItems = 0;
 let currentFilters = {};
-
-export const categories = [
-    'Informática', 'Electrónica', 'Mobiliario', 'Vehículos', 'Equipamiento',
-    'Herramientas', 'Materiales', 'Oficina', 'Otros electrónicos', 'Servicios',
-    'Mobiliario Depósito', 'Equipamiento Logístico', 'Equipamiento Oficina'
-];
 
 export const statusOptions = [
   { value: 'A', label: 'Apto' },
@@ -75,10 +88,18 @@ function getFullPathNodesMap() {
 
 let currentFormSubmitHandler = null;
 
-export function showItemForm(node, item = null) {
+// --- INICIO DE LA MODIFICACIÓN ---
+// La función ahora es asíncrona para poder esperar a que las categorías carguen.
+export async function showItemForm(node, item = null) {
+// --- FIN DE LA MODIFICACIÓN ---
     const modal = document.getElementById('modal-agregar-item');
     const form = document.getElementById('form-agregar-item');
     if (!modal || !form) return;
+
+    // --- INICIO DE LA MODIFICACIÓN ---
+    // Se asegura de que las categorías estén cargadas antes de continuar.
+    await loadCategories();
+    // --- FIN DE LA MODIFICACIÓN ---
 
     const isEditing = item !== null;
     form.reset();
@@ -87,12 +108,8 @@ export function showItemForm(node, item = null) {
     const nodeIdInput = form.querySelector('[name="node_id"]');
     const areaSearchInput = document.getElementById('area-search-input-modal');
 
-    // clonar input para evitar listeners dobles (si existe)
-    let newAreaSearchInput = null;
-    if (areaSearchInput) {
-        newAreaSearchInput = areaSearchInput.cloneNode(true);
-        areaSearchInput.parentNode.replaceChild(newAreaSearchInput, areaSearchInput);
-    }
+    let newAreaSearchInput = areaSearchInput.cloneNode(true);
+    areaSearchInput.parentNode.replaceChild(newAreaSearchInput, areaSearchInput);
 
     const needsAreaSelection = !isEditing && (!node || !node.id);
 
@@ -138,14 +155,8 @@ export function showItemForm(node, item = null) {
         document.addEventListener('click', function hideResults(e) {
             if (!e.target.closest('.search-container')) {
                 if (searchResults) searchResults.style.display = 'none';
-                document.removeEventListener('click', hideResults);
             }
         }, { once: true });
-
-        if (isEditing && item && item.area) {
-            newAreaSearchInput.value = item.area;
-        }
-
     } else {
         if (areaSelectionRow) areaSelectionRow.style.display = 'none';
         if (newAreaSearchInput) newAreaSearchInput.required = false;
@@ -155,7 +166,6 @@ export function showItemForm(node, item = null) {
     modal.querySelector('h2').textContent = isEditing ? `Editar Ítem: ${item ? item.name : ''}` : 'Agregar Nuevo Ítem';
     form.querySelector('[name="id"]').value = isEditing && item ? item.id : '';
     
-    // Muestra el código del ítem como texto solo si se está editando
     const codigoDisplayRow = form.querySelector('#codigo-display-row');
     if (codigoDisplayRow) {
         if (isEditing && item) {
@@ -175,7 +185,7 @@ export function showItemForm(node, item = null) {
     form.querySelector('[name="encargado"]').value = isEditing && item ? (item.encargado || 'No Asignado') : 'No Asignado';
 
     const categorySelect = form.querySelector('[name="category"]');
-    categorySelect.innerHTML = categories.map(cat => `<option value="${cat}" ${isEditing && item && item.category === cat ? 'selected' : ''}>${cat}</option>`).join('');
+    categorySelect.innerHTML = dynamicCategories.map(cat => `<option value="${cat}" ${isEditing && item && item.category === cat ? 'selected' : ''}>${cat}</option>`).join('');
 
     const statusSelect = form.querySelector('[name="status"]');
     statusSelect.innerHTML = statusOptions.map(option => `<option value="${option.value}" ${isEditing && item && item.status === option.value ? 'selected' : ''}>${option.label}</option>`).join('');
@@ -218,6 +228,7 @@ export function showItemForm(node, item = null) {
             alert(result.message || 'Operación completada.');
             if (result.success) {
                 closeItemForm();
+                areCategoriesLoaded = false; // Forzar recarga de categorías la próxima vez
                 displayInventory(node, sessionStorage.getItem('isAdmin') === 'true', currentTablePage, currentFilters);
             }
         } catch (error) {
@@ -321,8 +332,6 @@ function exportToXLSX(node, items) {
         alert('No hay datos en la página actual para exportar.');
         return;
     }
-    // Nota: Esta función solo exporta la página actual. Para exportar todos los ítems filtrados,
-    // se necesitaría una nueva función en el backend que devuelva todos los resultados sin paginación.
     const dataToExport = items.map(item => ({
         'codigo_item': item.codigo_item || '',
         nombre: item.name,
@@ -341,9 +350,8 @@ function exportToXLSX(node, items) {
     XLSX.writeFile(workbook, `inventario_${node.id || 'global'}_pag_${currentTablePage}.xlsx`);
 }
 
-// --- INICIO DE LA MODIFICACIÓN ---
 export async function displayInventory(node, isAdmin = false, page = 1, filters = {}) {
-    currentFilters = filters; // Guardar los filtros actuales
+    currentFilters = filters;
     const tableView = document.getElementById('table-view');
     const galleryView = document.getElementById('gallery-view');
 
@@ -353,12 +361,11 @@ export async function displayInventory(node, isAdmin = false, page = 1, filters 
         if (galleryContainer) galleryContainer.innerHTML = '<p>Cargando galería...</p>';
     }
     
-    // Construir la URL con los parámetros
     const params = new URLSearchParams({
         node_id: node.id || '',
         page: page,
         limit: ITEMS_PER_PAGE,
-        ...filters // Añadir los filtros al objeto de parámetros
+        ...filters
     });
 
     try {
@@ -367,9 +374,11 @@ export async function displayInventory(node, isAdmin = false, page = 1, filters 
 
         if (result.success) {
             window.currentInventoryContext = { node, items: result.data, isAdmin };
-            if (!document.getElementById('add-item-btn')) {
-                setupInventoryUI(node, result.data, isAdmin);
-            }
+            // --- INICIO DE LA MODIFICACIÓN ---
+            // Se llama a setupInventoryUI aquí para asegurar que los listeners y filtros
+            // se reconstruyan con la información más reciente.
+            await setupInventoryUI(node, result.data, isAdmin);
+            // --- FIN DE LA MODIFICACIÓN ---
             
             currentTablePage = page;
             totalTableItems = result.total;
@@ -389,11 +398,18 @@ export async function displayInventory(node, isAdmin = false, page = 1, filters 
         if (galleryView) galleryView.querySelector('#gallery-container').innerHTML = '<p>Error de conexión al cargar el inventario.</p>';
     }
 }
-// --- FIN DE LA MODIFICACIÓN ---
 
-function setupInventoryUI(node, items, isAdmin) {
+// --- INICIO DE LA MODIFICACIÓN ---
+// La función ahora es asíncrona para poder esperar a que las categorías carguen.
+async function setupInventoryUI(node, items, isAdmin) {
+// --- FIN DE LA MODIFICACIÓN ---
     const controlsContainer = document.getElementById('global-controls-container');
     if (!controlsContainer) return;
+
+    // --- INICIO DE LA MODIFICACIÓN ---
+    // Se asegura de que las categorías estén cargadas antes de construir el HTML.
+    await loadCategories();
+    // --- FIN DE LA MODIFICACIÓN ---
 
     window.currentInventoryContext = { node, items, isAdmin };
 
@@ -406,7 +422,7 @@ function setupInventoryUI(node, items, isAdmin) {
         <div class="filter-controls-container">
             <div class="filter-row"><label for="filter-codigo">Buscar por Código:</label><input type="text" id="filter-codigo" placeholder="Código del ítem"></div>
             <div class="filter-row"><label for="filter-name">Buscar por Nombre:</label><input type="text" id="filter-name" placeholder="Nombre del ítem"></div>
-            <div class="filter-row"><label for="filter-category">Categoría:</label><select id="filter-category"><option value="">Todas</option>${categories.map(cat => `<option value="${cat}">${cat}</option>`).join('')}</select></div>
+            <div class="filter-row"><label for="filter-category">Categoría:</label><select id="filter-category"><option value="">Todas</option>${dynamicCategories.map(cat => `<option value="${cat}">${cat}</option>`).join('')}</select></div>
             <div class="filter-row"><label for="filter-status">Estado:</label><select id="filter-status"><option value="">Todos</option>${statusOptions.map(option => `<option value="${option.value}">${option.label}</option>`).join('')}</select></div>
             <div class="filter-row"><label for="filter-date-from">Incorporado Desde:</label><input type="date" id="filter-date-from"></div>
             <div class="filter-row"><label for="filter-date-to">Incorporado Hasta:</label><input type="date" id="filter-date-to"></div>
@@ -434,7 +450,6 @@ function setupInventoryUI(node, items, isAdmin) {
             : '<i class="fas fa-filter"></i> Mostrar Filtros';
     });
     
-    // --- INICIO DE LA MODIFICACIÓN ---
     document.getElementById('apply-filters-btn').addEventListener('click', () => {
         const filters = {
             filter_codigo: document.getElementById('filter-codigo').value.trim(),
@@ -444,16 +459,13 @@ function setupInventoryUI(node, items, isAdmin) {
             filter_date_from: document.getElementById('filter-date-from').value,
             filter_date_to: document.getElementById('filter-date-to').value,
         };
-        // Al aplicar un filtro, siempre volvemos a la página 1
         displayInventory(node, isAdmin, 1, filters);
     });
 
     document.getElementById('reset-filters-btn').addEventListener('click', () => {
         filterControls.querySelectorAll('input, select').forEach(el => el.value = '');
-        // Al limpiar, volvemos a la página 1 sin filtros
         displayInventory(node, isAdmin, 1, {});
     });
-    // --- FIN DE LA MODIFICACIÓN ---
 }
 
 function setupHeaderActions() {
