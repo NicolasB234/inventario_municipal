@@ -702,6 +702,238 @@ body.night-mode .pagination-controls button:disabled {
     background-color: #6b4444;
     color: #ab8e8e;
 }
+/* ... (Estilos existentes) ... */
+
+/* --- ORGANIGRAMA Y FILTROS --- */
+.sidebar-search-container { display: none; margin-bottom: 15px; }
+#org-search-input { width: 100%; padding: 10px 15px; border-radius: var(--radio-borde); border: 1px solid var(--color-borde); background-color: var(--color-fondo); transition: all 0.2s ease; }
+#org-search-input:focus { border-color: var(--color-primario); background-color: var(--color-superficie); }
+#org-nav li.filtered-out { display: none; }
+#org-nav .node-content { display: flex; align-items: center; padding: 8px 10px; cursor: pointer; border-radius: var(--radio-borde); transition: background-color 0.2s ease; font-size: 0.9em; }
+#org-nav .node-content:hover { background-color: var(--color-fondo); }
+#org-nav .node-content.selected { background-color: var(--color-primario); color: var(--color-texto-primario); font-weight: 600; }
+
+/* --- INICIO DE LA MODIFICACIÓN --- */
+/* Estilos para el contenedor del ícono (antes la flecha) */
+#org-nav .toggle {
+    width: 20px; /* Ancho fijo para alinear el texto */
+    text-align: center;
+    margin-right: 5px;
+    color: #a0a0a0;
+}
+
+/* El texto del área ahora es más flexible */
+#org-nav .node-name {
+    flex-grow: 1;
+}
+
+/* Cuando un área está seleccionada, el ícono también cambia de color */
+#org-nav .node-content.selected .toggle {
+    color: var(--color-texto-primario);
+}
+
+#all-areas-btn { margin-bottom: 10px; border-bottom: 1px solid var(--color-borde); font-weight: 600; padding: 8px 10px; cursor: pointer;}
+#org-nav ul { list-style: none; padding-left: 0; }
+#org-nav ul ul { display: none; padding-left: 15px; margin-top: 5px; border-left: 1px solid var(--color-borde); }
+#org-nav ul li.expanded > ul { display: block; }
+
+/* ... (Estilos existentes) ... */
+
+/* --- INICIO DE LA MODIFICACIÓN --- */
+/* Contenedor principal de la barra de acciones superior */
+.inventory-controls-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.inventory-controls, .view-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Estilos para el menú de selección de columnas */
+.column-selector-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+#column-selector-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background-color: var(--color-superficie);
+    border: 1px solid var(--color-borde);
+    border-radius: var(--radio-borde);
+    box-shadow: var(--sombra-suave);
+    padding: 10px;
+    z-index: 1500;
+    min-width: 200px;
+    display: none; /* Se controla por JS */
+}
+
+#column-selector-menu label {
+    display: block;
+    padding: 8px 12px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+}
+
+#column-selector-menu label:hover {
+    background-color: var(--color-fondo);
+}
+
+#column-selector-menu input[type="checkbox"] {
+    margin-right: 10px;
+}
+
+/* Reglas CSS para ocultar las columnas */
+#inventory-table.hide-col-codigo_item .col-codigo_item,
+#inventory-table.hide-col-name .col-name,
+#inventory-table.hide-col-quantity .col-quantity,
+#inventory-table.hide-col-category .col-category,
+#inventory-table.hide-col-description .col-description,
+#inventory-table.hide-col-incorporacion .col-incorporacion,
+#inventory-table.hide-col-status .col-status,
+#inventory-table.hide-col-area .col-area,
+#inventory-table.hide-col-encargado .col-encargado,
+#inventory-table.hide-col-actions .col-actions {
+    display: none;
+}
+/* ... (Estilos existentes) ... */
+
+/* --- INICIO DE LA MODIFICACIÓN --- */
+/* Estilos para la funcionalidad de arrastrar la tabla */
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    cursor: grab; /* Muestra una mano abierta para indicar que se puede arrastrar */
+    user-select: none; /* Evita que el texto se seleccione al arrastrar */
+}
+
+.table-responsive.active-drag {
+    cursor: grabbing; /* Muestra una mano cerrada mientras se está arrastrando */
+    cursor: -webkit-grabbing;
+}
 /* --- FIN DE LA MODIFICACIÓN --- */
 
+#inventory-table, .log-table {
+/* ... (Estilos de la tabla sin cambios) ... */
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+#inventory-table thead th:hover {
+    background-color: #555; /* Un color ligeramente más claro al pasar el cursor */
+}
+
+/* Reglas CSS para ocultar las columnas */
+#inventory-table.hide-col-codigo_item .col-codigo_item,
+#inventory-table.hide-col-name .col-name,
+#inventory-table.hide-col-quantity .col-quantity,
+#inventory-table.hide-col-category .col-category,
+#inventory-table.hide-col-description .col-description,
+#inventory-table.hide-col-incorporacion .col-incorporacion,
+#inventory-table.hide-col-status .col-status,
+#inventory-table.hide-col-area .col-area,
+#inventory-table.hide-col-encargado .col-encargado,
+#inventory-table.hide-col-actions .col-actions {
+    display: none;
+}
+
+/* ... (Estilos existentes) ... */
+
+/* --- TABLAS --- */
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    /* Se elimina el cursor de agarre ya que no se necesita. */
+}
+
+#inventory-table, .log-table {
+    width: 100%; 
+    border-collapse: collapse; 
+    margin-top: 20px; 
+    background-color: var(--color-superficie);
+    border-radius: var(--radio-borde); 
+    box-shadow: var(--sombra-suave); 
+    overflow: hidden;
+}
+#inventory-table th, #inventory-table td, .log-table th, .log-table td { 
+    border-bottom: 1px solid var(--color-borde); 
+    padding: 10px 15px; 
+    text-align: left; 
+    font-size: 0.9em;
+    white-space: nowrap;
+}
+#inventory-table th, .log-table th {
+    background-color: #333; 
+    color: var(--color-texto-primario);
+    font-weight: 600; 
+    text-transform: uppercase; 
+    font-size: 0.8em;
+}
+
+/* --- INICIO DE LA MODIFICACIÓN: COLUMNAS FIJAS --- */
+/* Estilos para que las columnas se queden fijas al hacer scroll */
+.sticky-col {
+    position: -webkit-sticky; /* Para compatibilidad con Safari */
+    position: sticky;
+    background-color: var(--color-superficie); /* Fondo para que no se vea el texto de atrás */
+}
+
+body.dark-mode .sticky-col, body.night-mode .sticky-col {
+    background-color: var(--color-superficie); /* Asegurar el fondo en temas oscuros */
+}
+
+/* Define la posición de cada columna fija */
+.first-col {
+    left: 0px;
+    z-index: 3; /* Más alto para la primera columna */
+}
+
+.second-col {
+    left: 100px; /* Ajustar este valor según el ancho de la primera columna */
+    z-index: 2;
+}
+
+.third-col {
+    left: 220px; /* Ajustar según el ancho de las dos primeras */
+    z-index: 1;
+}
+
+/* Darle un borde sutil a la última columna fija para separarla */
+#inventory-table .third-col {
+    border-right: 2px solid var(--color-primario);
+}
+/* --- FIN DE LA MODIFICACIÓN --- */
+
+
+#inventory-table tbody tr:hover, .log-table tbody tr:hover { background-color: #f9f9f9; }
+#inventory-table .actions button { padding: 6px 10px; margin-right: 5px; font-size: 0.85em; }
+#inventory-table .actions button:hover { transform: scale(1.1); }
+.log-table tr:nth-child(even) { background-color: #f2f2f2; }
+.back-link { display: inline-block; margin-bottom: 20px; }
+.pagination-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 0;
+    margin-top: 15px;
+    border-top: 1px solid var(--color-borde);
+}
+.pagination-controls span {
+    font-size: 0.95em;
+    font-weight: 600;
+}
+.pagination-controls button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+    transform: none;
+}
 /* ... (Resto de los estilos) ... */

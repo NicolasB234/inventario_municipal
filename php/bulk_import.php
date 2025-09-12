@@ -59,39 +59,27 @@ function bind_params_array(mysqli_stmt $stmt, string $types, array &$params) {
     return call_user_func_array([$stmt, 'bind_param'], $refs);
 }
 
-// --- INICIO DE LA MODIFICACIÓN: LÓGICA DE ACTUALIZACIÓN ---
-/**
- * Deduplica el array de ítems basado en el codigo_item.
- * Si hay duplicados, fusiona los datos, dando prioridad a los valores no vacíos de las últimas apariciones.
- * @param array $payload Array de ítems del Excel.
- * @return array Array de ítems sin duplicados y con datos fusionados.
- */
 function deduplicateAndMerge(array $payload): array {
     $merged_items = [];
     foreach ($payload as $row) {
         $codigo = trim($row['codigo_item'] ?? '');
-        // Si no hay código, se tratará como un ítem nuevo más adelante.
         if ($codigo === '') {
             $merged_items[] = $row;
             continue;
         }
 
-        // Si el código ya existe en nuestro array procesado, lo fusionamos
         if (isset($merged_items[$codigo])) {
-            // Fusionar campos: el valor nuevo sobreescribe el viejo solo si no está vacío
             foreach ($row as $key => $value) {
                 if (!empty(trim((string)$value))) {
                     $merged_items[$codigo][$key] = $value;
                 }
             }
         } else {
-            // Si es la primera vez que vemos este código, simplemente lo añadimos
             $merged_items[$codigo] = $row;
         }
     }
     return array_values($merged_items);
 }
-// --- FIN DE LA MODIFICACIÓN ---
 
 if ($is_admin) {
     $areaMap = createAreaMap($orgStructure);
@@ -106,20 +94,18 @@ if ($is_admin) {
             throw new Exception("El archivo no contiene ítems para procesar.");
         }
         
-        // --- INICIO DE LA MODIFICACIÓN: Usar la nueva función de fusión ---
         $items_to_process = deduplicateAndMerge($items);
-        // --- FIN DE LA MODIFICACIÓN ---
 
         $onDuplicateKeyUpdateClause = " ON DUPLICATE KEY UPDATE
-            node_id = IF(VALUES(node_id) IS NOT NULL, VALUES(node_id), node_id),
-            name = IF(VALUES(name) IS NOT NULL AND VALUES(name) <> '', VALUES(name), name),
-            quantity = IF(VALUES(quantity) IS NOT NULL, VALUES(quantity), quantity),
-            category = IF(VALUES(category) IS NOT NULL AND VALUES(category) <> '', VALUES(category), category),
-            description = IF(VALUES(description) IS NOT NULL, VALUES(description), description),
-            imagePath = IF(VALUES(imagePath) IS NOT NULL AND VALUES(imagePath) <> '', VALUES(imagePath), imagePath),
-            incorporacion = IF(VALUES(incorporacion) IS NOT NULL, VALUES(incorporacion), incorporacion),
-            status = IF(VALUES(status) IS NOT NULL AND VALUES(status) <> '', VALUES(status), status),
-            encargado = IF(VALUES(encargado) IS NOT NULL, VALUES(encargado), encargado)";
+            node_id = COALESCE(VALUES(node_id), node_id),
+            name = COALESCE(NULLIF(VALUES(name), ''), name),
+            quantity = COALESCE(VALUES(quantity), quantity),
+            category = COALESCE(NULLIF(VALUES(category), ''), category),
+            description = COALESCE(VALUES(description), description),
+            imagePath = COALESCE(NULLIF(VALUES(imagePath), ''), imagePath),
+            incorporacion = COALESCE(VALUES(incorporacion), incorporacion),
+            status = COALESCE(NULLIF(VALUES(status), ''), status),
+            encargado = COALESCE(NULLIF(VALUES(encargado), ''), encargado)";
 
         $queryBase = "INSERT INTO inventory_items (codigo_item, node_id, name, quantity, category, description, imagePath, incorporacion, status, encargado) VALUES ";
         $placeholdersPerItem = "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
@@ -140,22 +126,37 @@ if ($is_admin) {
 
             $codigo_item = trim((string)($item['codigo_item'] ?? ''));
 
-            // Generar código solo si está vacío. Si viene con un código, se respeta para la actualización.
             if (empty($codigo_item)) {
                 $codigo_item = generateUniqueCodigoItem($conn, $last_generated_number);
                 $newly_generated_codes++;
             }
 
+            // --- INICIO DE LA MODIFICACIÓN ---
+            
+            // Cantidad: Por defecto es 1 si está vacía, es 0, o no es un número válido.
+            $quantity = (int)($item['cantidad'] ?? 1);
+            if ($quantity <= 0) {
+                $quantity = 1;
+            }
+
+            // Estado: Mapea el valor y por defecto es 'A' (Apto).
+            $statusLabel = strtolower(trim($item['estado'] ?? ''));
+            $statusMap = ['apto'=>'A','no apto'=>'N','recuperable'=>'R','de baja'=>'D', 'bueno' => 'B', 'nuevo' => 'M', 'regular' => 'S'];
+            $status = $statusMap[$statusLabel] ?? 'A'; // 'A' de Apto como default
+
+            // Encargado: Por defecto es 'No Asignado' si está vacío.
+            $encargado = trim((string)($item['encargado'] ?? ''));
+            if (empty($encargado)) {
+                $encargado = 'No Asignado';
+            }
+
             $name = trim((string)($item['nombre'] ?? ''));
-            $quantity = !empty($item['cantidad']) ? (int)$item['cantidad'] : null;
             $category = trim((string)($item['categoria'] ?? ''));
             $description = trim((string)($item['descripcion'] ?? ''));
             $imagePath = trim((string)($item['imagePath'] ?? $item['imagen'] ?? ''));
             $incorporacion = !empty($item['incorporacion']) ? trim($item['incorporacion']) : null;
-            $statusLabel = strtolower(trim($item['estado'] ?? ''));
-            $statusMap = ['apto'=>'A','no apto'=>'N','recuperable'=>'R','de baja'=>'D', 'bueno' => 'B', 'nuevo' => 'M', 'regular' => 'S'];
-            $status = $statusMap[$statusLabel] ?? '';
-            $encargado = trim((string)($item['encargado'] ?? ''));
+            
+            // --- FIN DE LA MODIFICACIÓN ---
 
             $currentBatch = array_merge($currentBatch, [
                 $codigo_item, $node_id, $name, $quantity, $category, 

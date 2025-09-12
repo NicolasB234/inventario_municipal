@@ -1,4 +1,18 @@
 export const orgStructure = [
+    // --- INICIO DE LA MODIFICACIÓN ---
+    {
+        id: 'auditor',
+        name: 'Auditor',
+        type: 'area',
+        children: []
+    },
+    {
+        id: 'tribunal-faltas',
+        name: 'Tribunal de faltas',
+        type: 'area',
+        children: []
+    },
+    // --- FIN DE LA MODIFICACIÓN ---
     {
         id: 'intendencia',
         name: 'Intendencia',
@@ -28,7 +42,9 @@ export const orgStructure = [
                         name: 'Dirección de Bromatología',
                         type: 'direccion',
                         children: [
-                            { id: 'coord-zoonosis', name: 'Coordinación de Área de Zoonosis', type: 'coordinacion', children: [] },
+                            // --- INICIO DE LA MODIFICACIÓN ---
+                            { id: 'coord-zoonosis', name: 'Coordinación de Zoonosis', type: 'coordinacion', children: [] },
+                            // --- FIN DE LA MODIFICACIÓN ---
                         ]
                     },
                     { id: 'dir-empleo-capacitacion', name: 'Dirección de Empleo y Capacitación', type: 'direccion', children: [] },
@@ -158,8 +174,27 @@ export const orgStructure = [
                 type: 'viceintendencia',
                 children: [
                     { id: 'area-salud', name: 'Área de Salud', type: 'area', children: [] },
-                    { id: 'dir-salud', name: 'Dirección de Salud', type: 'direccion', children: [] },
-                    { id: 'dir-club-dia', name: 'Dirección Club de Día', type: 'direccion', children: [] },
+                    {
+                        id: 'dir-salud',
+                        name: 'Dirección de Salud',
+                        type: 'direccion',
+                        // --- INICIO DE LA MODIFICACIÓN ---
+                        children: [
+                            { id: 'sala-salud-1', name: 'Sala de Salud 1', type: 'area', children: [] },
+                            { id: 'sala-salud-2', name: 'Sala de Salud 2', type: 'area', children: [] },
+                            { id: 'sala-salud-3', name: 'Sala de Salud 3', type: 'area', children: [] },
+                            { id: 'sala-salud-4', name: 'Sala de Salud 4', type: 'area', children: [] },
+                            { id: 'sala-salud-5', name: 'Sala de Salud 5', type: 'area', children: [] },
+                            { id: 'sala-salud-6', name: 'Sala de Salud 6', type: 'area', children: [] },
+                            { id: 'sala-salud-7', name: 'Sala de Salud 7', type: 'area', children: [] },
+                            { id: 'sala-salud-8', name: 'Sala de Salud 8', type: 'area', children: [] },
+                            { id: 'sala-salud-9', name: 'Sala de Salud 9', type: 'area', children: [] },
+                        ]
+                        // --- FIN DE LA MODIFICACIÓN ---
+                    },
+                    // --- INICIO DE LA MODIFICACIÓN ---
+                    { id: 'coord-club-dia', name: 'Coordinación Club de Día', type: 'coordinacion', children: [] },
+                    // --- FIN DE LA MODIFICACIÓN ---
                     { id: 'sub-discapacidad', name: 'Subdirección de Discapacidad', type: 'subdireccion', children: [] },
                     { id: 'coord-salud', name: 'Coordinación de Salud', type: 'coordinacion', children: [] },
                 ]

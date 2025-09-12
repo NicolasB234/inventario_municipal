@@ -1,8 +1,22 @@
-// --- INICIO DE LA CORRECCIÓN ---
+// --- INICIO DE LA MODIFICACIÓN ---
 // Se elimina la importación innecesaria y errónea de 'statusOptions'.
 import { orgStructure } from './org-structure.js';
 import { displayInventory, setupModalClosers } from './inventory-functions.js';
-// --- FIN DE LA CORRECCIÓN ---
+
+/**
+ * Normaliza un texto: lo convierte a minúsculas y le quita los acentos.
+ * Esto permite hacer búsquedas flexibles que ignoran tildes y mayúsculas.
+ * @param {string} text El texto a normalizar.
+ * @returns {string} El texto normalizado.
+ */
+function normalizeText(text) {
+    if (!text) return '';
+    return text
+        .toLowerCase()
+        .normalize("NFD") // Descompone los caracteres acentuados en letra + acento
+        .replace(/[\u0300-\u036f]/g, ""); // Elimina los acentos
+}
+// --- FIN DE LA MODIFICACIÓN ---
 
 const PHP_BASE_URL = 'php/';
 
@@ -11,7 +25,18 @@ let localNotifications = [];
 let lastNotificationId = 0;
 let lastAdminRequestCount = 0;
 let lastAdminLogId = 0; 
-let pollingInterval; // Para poder detener el polling si es necesario
+let pollingInterval; 
+
+function startPolling() {
+    if (pollingInterval) return;
+    fetchUpdates(); 
+    pollingInterval = setInterval(fetchUpdates, 5000);
+}
+
+function stopPolling() {
+    clearInterval(pollingInterval);
+    pollingInterval = null;
+}
 
 function addNotificationToList(notif) {
     localNotifications.unshift({
@@ -45,10 +70,6 @@ function shakeBell() {
     }
 }
 
-// Nota de optimización: El polling (consultar cada X segundos) es funcional
-// pero puede ser ineficiente con muchos usuarios. Alternativas más modernas
-// y eficientes incluyen WebSockets o Server-Sent Events (SSE) para una
-// comunicación en tiempo real del servidor al cliente.
 async function fetchUpdates() {
     const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
     const lastId = isAdmin ? lastAdminLogId : lastNotificationId;
@@ -103,21 +124,17 @@ async function fetchUpdates() {
 }
 
 function initializeNotifications() {
-    if (pollingInterval) clearInterval(pollingInterval); // Limpia el intervalo anterior si existe
-    fetch(`${PHP_BASE_URL}get_log.php`)
-        .then(res => res.json())
-        .then(result => {
-            if (result.success && result.data.length > 0) {
-                const latestId = result.data[0].id;
-                lastAdminLogId = latestId;
-                lastNotificationId = latestId;
-            }
-        })
-        .catch(err => console.error("Error al obtener el último ID de log:", err))
-        .finally(() => {
-            fetchUpdates();
-            pollingInterval = setInterval(fetchUpdates, 5000); // 5 segundos
-        });
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            stopPolling();
+        } else {
+            startPolling();
+        }
+    });
+
+    if (!document.hidden) {
+        startPolling();
+    }
 }
 
 function toggleNotifPanel() {
@@ -303,14 +320,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         const allAreas = getAllInventoryNodes(orgStructure);
 
         searchInput.addEventListener('input', () => {
-            const query = searchInput.value.toLowerCase().trim();
+            // --- INICIO DE LA MODIFICACIÓN ---
+            const query = normalizeText(searchInput.value);
+            // --- FIN DE LA MODIFICACIÓN ---
             searchResults.innerHTML = '';
             hiddenAreaIdInput.value = '';
             if (query.length < 2) {
                 searchResults.style.display = 'none';
                 return;
             }
-            const filteredAreas = allAreas.filter(area => area.name.toLowerCase().includes(query));
+            // --- INICIO DE LA MODIFICACIÓN ---
+            const filteredAreas = allAreas.filter(area => normalizeText(area.name).includes(query));
+            // --- FIN DE LA MODIFICACIÓN ---
             if (filteredAreas.length > 0) {
                 filteredAreas.forEach(area => {
                     const item = document.createElement('div');
@@ -397,40 +418,59 @@ document.addEventListener('DOMContentLoaded', async () => {
         let selectedNodeElement = null;
 
         function buildOrgTree(nodes, parentElement) {
-            const ul = document.createElement('ul');
-            nodes.forEach(node => {
-                const li = document.createElement('li');
-                li.dataset.nodeId = node.id;
-                const nodeContent = document.createElement('div');
-                nodeContent.className = 'node-content';
-                const toggle = document.createElement('span');
-                toggle.className = 'toggle';
-                if (node.children && node.children.length > 0) {
-                    toggle.textContent = '▸';
-                    toggle.onclick = (e) => { e.stopPropagation(); toggleNode(li); };
-                } else {
-                    toggle.textContent = ' ';
-                }
-                const nodeNameSpan = document.createElement('span');
-                nodeNameSpan.textContent = node.name;
-                nodeContent.append(toggle, nodeNameSpan);
-                nodeContent.onclick = () => selectNode(li, node);
-                li.appendChild(nodeContent);
-                if (node.children) {
-                    buildOrgTree(node.children, li);
-                }
-                ul.appendChild(li);
-            });
-            parentElement.appendChild(ul);
+    const ul = document.createElement('ul');
+    nodes.forEach(node => {
+        const li = document.createElement('li');
+        li.dataset.nodeId = node.id;
+        const nodeContent = document.createElement('div');
+        nodeContent.className = 'node-content';
+        
+        // El span 'toggle' ahora solo mostrará un ícono, ya no es clickeable por sí mismo.
+        const toggle = document.createElement('span');
+        toggle.className = 'toggle';
+
+        const nodeNameSpan = document.createElement('span');
+        nodeNameSpan.textContent = node.name;
+        nodeNameSpan.className = 'node-name'; // Clase para darle más peso al texto
+
+        if (node.children && node.children.length > 0) {
+            toggle.innerHTML = '<i class="fas fa-caret-right"></i>'; // Flecha por defecto
         }
 
-        function toggleNode(liElement) {
-            liElement.classList.toggle('expanded');
-            const toggle = liElement.querySelector('.toggle');
-            if (toggle) {
-                toggle.textContent = liElement.classList.contains('expanded') ? '▾' : '▸';
+        nodeContent.append(toggle, nodeNameSpan);
+
+        // El evento de click ahora está en todo el div (texto + ícono)
+        nodeContent.onclick = () => {
+            // Acción 1: Siempre selecciona el nodo y carga su inventario
+            selectNode(li, node);
+            
+            // Acción 2: Si tiene hijos, también despliega/contrae el submenú
+            if (node.children && node.children.length > 0) {
+                toggleNode(li);
             }
+        };
+
+        li.appendChild(nodeContent);
+        if (node.children) {
+            buildOrgTree(node.children, li);
         }
+        ul.appendChild(li);
+    });
+    parentElement.appendChild(ul);
+}
+
+        function toggleNode(liElement) {
+    liElement.classList.toggle('expanded');
+    const toggleIcon = liElement.querySelector('.toggle i');
+    if (toggleIcon) {
+        // Cambia el ícono de la flecha
+        if (liElement.classList.contains('expanded')) {
+            toggleIcon.className = 'fas fa-caret-down';
+        } else {
+            toggleIcon.className = 'fas fa-caret-right';
+        }
+    }
+}
 
         const sidebarToggleBtn = document.getElementById('sidebar-toggle-btn');
         const sidebarOverlay = document.getElementById('sidebar-overlay');
@@ -458,8 +498,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
             
-            closeSidebar();
-            displayInventory(node, isAdmin);
+
+            displayInventory({ id: node.id, name: node.name }, isAdmin);
         }
         
         function setupHeaderButtons() {
@@ -550,12 +590,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         const orgSearchInput = document.getElementById('org-search-input');
         if (orgSearchInput) {
             orgSearchInput.addEventListener('input', () => {
-                const searchTerm = orgSearchInput.value.toLowerCase().trim();
+                // --- INICIO DE LA MODIFICACIÓN ---
+                const searchTerm = normalizeText(orgSearchInput.value);
+                // --- FIN DE LA MODIFICACIÓN ---
                 const allNodes = orgNav.querySelectorAll('#org-nav li');
 
                 allNodes.forEach(li => {
                     const nodeNameElement = li.querySelector('.node-content > span:last-of-type');
-                    const nodeName = nodeNameElement ? nodeNameElement.textContent.toLowerCase() : '';
+                    // --- INICIO DE LA MODIFICACIÓN ---
+                    const nodeName = nodeNameElement ? normalizeText(nodeNameElement.textContent) : '';
+                    // --- FIN DE LA MODIFICACIÓN ---
                     if (nodeName.includes(searchTerm)) {
                         li.style.display = "";
                         let parent = li.parentElement.closest('li');

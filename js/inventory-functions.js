@@ -3,8 +3,57 @@ import { orgStructure } from './org-structure.js';
 const API_URL = 'php/';
 const ITEMS_PER_PAGE = 14;
 
+// --- ESTADO GLOBAL (simplificado) ---
 let dynamicCategories = []; 
 let areCategoriesLoaded = false;
+let currentTablePage = 1;
+let totalTableItems = 0;
+let currentGalleryPage = 1;
+let totalGalleryItems = 0;
+let currentFilters = {};
+
+// --- INICIO DE LA MODIFICACIÓN ---
+/**
+ * Habilita la funcionalidad de arrastrar para hacer scroll horizontal en un elemento.
+ * @param {HTMLElement} element El elemento contenedor que tendrá el scroll.
+ */
+function enableDragToScroll(element) {
+    if (!element) return;
+    let isDown = false;
+    let startX;
+    let scrollLeft;
+
+    element.addEventListener('mousedown', (e) => {
+        // Solo iniciar el arrastre si se hace clic con el botón principal y no sobre un botón de acción
+        if (e.button !== 0 || e.target.closest('button')) {
+            return;
+        }
+        isDown = true;
+        element.classList.add('active-drag');
+        startX = e.pageX - element.offsetLeft;
+        scrollLeft = element.scrollLeft;
+        e.preventDefault(); // Prevenir la selección de texto
+    });
+
+    element.addEventListener('mouseleave', () => {
+        isDown = false;
+        element.classList.remove('active-drag');
+    });
+
+    element.addEventListener('mouseup', () => {
+        isDown = false;
+        element.classList.remove('active-drag');
+    });
+
+    element.addEventListener('mousemove', (e) => {
+        if (!isDown) return;
+        e.preventDefault();
+        const x = e.pageX - element.offsetLeft;
+        const walk = (x - startX) * 2; // Multiplicador para que el scroll sea más sensible
+        element.scrollLeft = scrollLeft - walk;
+    });
+}
+// --- FIN DE LA MODIFICACIÓN ---
 
 async function loadCategories() {
     if (areCategoriesLoaded) return;
@@ -21,13 +70,6 @@ async function loadCategories() {
         console.error("Error de red al cargar las categorías:", error);
     }
 }
-// --- FIN DE LA MODIFICACIÓN ---
-
-let currentTablePage = 1;
-let totalTableItems = 0;
-let currentGalleryPage = 1;
-let totalGalleryItems = 0;
-let currentFilters = {};
 
 export const statusOptions = [
   { value: 'A', label: 'Apto' },
@@ -86,20 +128,22 @@ function getFullPathNodesMap() {
     return map;
 }
 
+function normalizeText(text) {
+    if (!text) return '';
+    return text
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+}
+
 let currentFormSubmitHandler = null;
 
-// --- INICIO DE LA MODIFICACIÓN ---
-// La función ahora es asíncrona para poder esperar a que las categorías carguen.
 export async function showItemForm(node, item = null) {
-// --- FIN DE LA MODIFICACIÓN ---
     const modal = document.getElementById('modal-agregar-item');
     const form = document.getElementById('form-agregar-item');
     if (!modal || !form) return;
 
-    // --- INICIO DE LA MODIFICACIÓN ---
-    // Se asegura de que las categorías estén cargadas antes de continuar.
     await loadCategories();
-    // --- FIN DE LA MODIFICACIÓN ---
 
     const isEditing = item !== null;
     form.reset();
@@ -122,7 +166,7 @@ export async function showItemForm(node, item = null) {
         const allAreas = getAllInventoryNodes(orgStructure);
 
         const searchHandler = () => {
-            const query = newAreaSearchInput.value.toLowerCase().trim();
+            const query = normalizeText(newAreaSearchInput.value);
             if (!searchResults) return;
             searchResults.innerHTML = '';
             nodeIdInput.value = '';
@@ -130,9 +174,7 @@ export async function showItemForm(node, item = null) {
                 searchResults.style.display = 'none';
                 return;
             }
-            const filteredAreas = allAreas.filter(area =>
-                area.name.toLowerCase().includes(query)
-            );
+            const filteredAreas = allAreas.filter(area => normalizeText(area.name).includes(query));
             if (filteredAreas.length > 0) {
                 filteredAreas.forEach(area => {
                     const itemDiv = document.createElement('div');
@@ -228,7 +270,7 @@ export async function showItemForm(node, item = null) {
             alert(result.message || 'Operación completada.');
             if (result.success) {
                 closeItemForm();
-                areCategoriesLoaded = false; // Forzar recarga de categorías la próxima vez
+                areCategoriesLoaded = false;
                 displayInventory(node, sessionStorage.getItem('isAdmin') === 'true', currentTablePage, currentFilters);
             }
         } catch (error) {
@@ -374,11 +416,7 @@ export async function displayInventory(node, isAdmin = false, page = 1, filters 
 
         if (result.success) {
             window.currentInventoryContext = { node, items: result.data, isAdmin };
-            // --- INICIO DE LA MODIFICACIÓN ---
-            // Se llama a setupInventoryUI aquí para asegurar que los listeners y filtros
-            // se reconstruyan con la información más reciente.
             await setupInventoryUI(node, result.data, isAdmin);
-            // --- FIN DE LA MODIFICACIÓN ---
             
             currentTablePage = page;
             totalTableItems = result.total;
@@ -399,25 +437,18 @@ export async function displayInventory(node, isAdmin = false, page = 1, filters 
     }
 }
 
-// --- INICIO DE LA MODIFICACIÓN ---
-// La función ahora es asíncrona para poder esperar a que las categorías carguen.
 async function setupInventoryUI(node, items, isAdmin) {
-// --- FIN DE LA MODIFICACIÓN ---
     const controlsContainer = document.getElementById('global-controls-container');
     if (!controlsContainer) return;
 
-    // --- INICIO DE LA MODIFICACIÓN ---
-    // Se asegura de que las categorías estén cargadas antes de construir el HTML.
     await loadCategories();
-    // --- FIN DE LA MODIFICACIÓN ---
-
     window.currentInventoryContext = { node, items, isAdmin };
 
     controlsContainer.innerHTML = `
         <div class="inventory-controls">
             <button id="add-item-btn"><i class="fas fa-plus"></i> Agregar Item</button>
             <button id="transfer-item-btn"><i class="fas fa-random"></i> Traspasar Item</button>
-            <button id="toggle-filters-btn"><i class="fas fa-filter"></i> Mostrar Filtros</button>
+            <button id="toggle-filters-btn"><i class="fas fa-filter"></i> Filtros</button>
         </div>
         <div class="filter-controls-container">
             <div class="filter-row"><label for="filter-codigo">Buscar por Código:</label><input type="text" id="filter-codigo" placeholder="Código del ítem"></div>
@@ -447,7 +478,7 @@ async function setupInventoryUI(node, items, isAdmin) {
         const button = document.getElementById('toggle-filters-btn');
         button.innerHTML = filterControls.classList.contains('visible')
             ? '<i class="fas fa-eye-slash"></i> Ocultar Filtros'
-            : '<i class="fas fa-filter"></i> Mostrar Filtros';
+            : '<i class="fas fa-filter"></i> Filtros';
     });
     
     document.getElementById('apply-filters-btn').addEventListener('click', () => {
@@ -603,6 +634,7 @@ async function handleXlsxImportFile(file) {
         alert(result.message || 'Proceso de importación finalizado.');
         if (result.success) {
             const ctx = window.currentInventoryContext || {};
+            areCategoriesLoaded = false;
             displayInventory(ctx.node || { id: '' }, ctx.isAdmin || false);
         }
     } catch (error) {
@@ -621,19 +653,30 @@ function renderTable(node, items, isAdmin) {
     }
 
     const totalPages = Math.ceil(totalTableItems / ITEMS_PER_PAGE);
-
+    
     let tableHTML = `
         <div class="table-responsive">
             <table id="inventory-table" class="inventory-table">
                 <thead><tr>
-                    <th>Código</th><th>Nombre</th><th>Cantidad</th><th>Categoría</th>
-                    <th>Descripción</th><th>Incorporación</th><th>Estado</th><th>Área</th>
-                    <th>Encargado</th><th>Acciones</th>
+                    <th>Acciones</th>
+                    <th>Codigo item</th>
+                    <th>Nombre</th>
+                    <th>Cantidad</th>
+                    <th>Categoría</th>
+                    <th>Descripción</th>
+                    <th>Incorporación</th>
+                    <th>Estado</th>
+                    <th>Área</th>
+                    <th>Encargado</th>
                 </tr></thead>
                 <tbody>
-                    ${items.length === 0 ? `<tr><td colspan="10" style="text-align:center;">No se encontraron ítems con los filtros aplicados.</td></tr>` :
+                    ${items.length === 0 ? `<tr><td colspan="10" style="text-align:center;">No se encontraron ítems.</td></tr>` :
                     items.map(item => `
                         <tr>
+                            <td class="actions">
+                                <button class="edit-btn" data-item-id="${item.id}"><i class="fas fa-edit"></i></button>
+                                <button class="delete-btn" data-item-id="${item.id}" title="Dar de baja"><i class="fas fa-arrow-down"></i></button>
+                            </td>
                             <td>${item.codigo_item || ''}</td>
                             <td>${item.name || ''}</td>
                             <td>${item.quantity || 0}</td>
@@ -643,10 +686,6 @@ function renderTable(node, items, isAdmin) {
                             <td>${statusOptions.find(s => s.value === item.status)?.label || 'N/A'}</td>
                             <td>${nodesMap.get(item.node_id) || 'N/A'}</td>
                             <td>${item.encargado || 'N/A'}</td>
-                            <td class="actions">
-                                <button class="edit-btn" data-item-id="${item.id}"><i class="fas fa-edit"></i></button>
-                                <button class="delete-btn" data-item-id="${item.id}" title="Dar de baja"><i class="fas fa-arrow-down"></i></button>
-                            </td>
                         </tr>
                     `).join('')}
                 </tbody>
@@ -665,6 +704,9 @@ function renderTable(node, items, isAdmin) {
     }
     
     tableContainer.innerHTML = tableHTML;
+    
+    const scrollableTable = tableContainer.querySelector('.table-responsive');
+    enableDragToScroll(scrollableTable);
 
     if (totalPages > 1) {
         document.getElementById('prev-table-page').onclick = () => {
