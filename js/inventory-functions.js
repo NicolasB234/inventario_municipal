@@ -148,6 +148,21 @@ export async function showItemForm(node, item = null) {
     const isEditing = item !== null;
     form.reset();
 
+    // --- INICIO DE LA MODIFICACIÓN ---
+    // Se añade la lógica para mostrar el área del ítem que se está editando.
+    const areaDisplayRow = document.getElementById('area-display-row');
+    if (isEditing && item && areaDisplayRow) {
+        const areaDisplayText = document.getElementById('area-display-text');
+        // Usamos el mapa de nodos para obtener el nombre del área a partir de su ID.
+        const areaName = nodesMap.get(item.node_id) || 'Área no especificada';
+        areaDisplayText.value = areaName;
+        areaDisplayRow.style.display = 'block';
+    } else if (areaDisplayRow) {
+        // Se oculta este campo si se está agregando un nuevo ítem.
+        areaDisplayRow.style.display = 'none';
+    }
+    // --- FIN DE LA MODIFICACIÓN ---
+
     const areaSelectionRow = document.getElementById('area-selection-row');
     const nodeIdInput = form.querySelector('[name="node_id"]');
     const areaSearchInput = document.getElementById('area-search-input-modal');
@@ -585,52 +600,51 @@ async function handleXlsxImportFile(file) {
         }
 
         const mappedJson = json
-    .filter(row => Object.keys(row).length > 0)
-    .map(row => {
-        const newRow = {};
-        for (const key in row) {
-            const lowerKey = key.toLowerCase().trim().replace(/\s+/g, '');
-            if (lowerKey.startsWith('codigo')) newRow.codigo_item = row[key];
-            else if (lowerKey.startsWith('nombre')) newRow.nombre = row[key];
-            else if (lowerKey.startsWith('cantidad')) newRow.cantidad = row[key];
-            else if (lowerKey.startsWith('categor')) newRow.categoria = row[key];
-            else if (lowerKey.startsWith('descripci')) newRow.descripcion = row[key];
-            else if (lowerKey.startsWith('incorporaci')) {
-                if (row[key]) {
-                    const date = new Date(row[key]);
-                    if (!isNaN(date.getTime())) {
-                        const userTimezoneOffset = date.getTimezoneOffset() * 60000;
-                        const correctedDate = new Date(date.getTime() + userTimezoneOffset);
-                        const year = correctedDate.getUTCFullYear();
-                        const month = String(correctedDate.getUTCMonth() + 1).padStart(2, '0');
-                        const day = String(correctedDate.getUTCDate()).padStart(2, '0');
-                        newRow.incorporacion = `${year}-${month}-${day}`;
-                    } else {
-                        newRow.incorporacion = null;
+            .filter(row => Object.keys(row).length > 0)
+            .map(row => {
+                const newRow = {};
+                for (const key in row) {
+                    const lowerKey = key.toLowerCase().trim().replace(/\s+/g, '');
+                    if (lowerKey.startsWith('codigo')) newRow.codigo_item = row[key];
+                    else if (lowerKey.startsWith('nombre')) newRow.nombre = row[key];
+                    else if (lowerKey.startsWith('cantidad')) newRow.cantidad = row[key];
+                    else if (lowerKey.startsWith('categor')) newRow.categoria = row[key];
+                    else if (lowerKey.startsWith('descripci')) newRow.descripcion = row[key];
+                    else if (lowerKey.startsWith('incorporaci')) {
+                        if (row[key]) {
+                            const date = new Date(row[key]);
+                            if (!isNaN(date.getTime())) {
+                                const userTimezoneOffset = date.getTimezoneOffset() * 60000;
+                                const correctedDate = new Date(date.getTime() + userTimezoneOffset);
+                                const year = correctedDate.getUTCFullYear();
+                                const month = String(correctedDate.getUTCMonth() + 1).padStart(2, '0');
+                                const day = String(correctedDate.getUTCDate()).padStart(2, '0');
+                                newRow.incorporacion = `${year}-${month}-${day}`;
+                            } else {
+                                newRow.incorporacion = null;
+                            }
+                        } else {
+                            newRow.incorporacion = null;
+                        }
+                    } else if (lowerKey.startsWith('imagen') || lowerKey.startsWith('image')) {
+                        let img = row[key] ? String(row[key]).trim() : '';
+                        if (img && !/^https?:\/\//i.test(img) && !img.startsWith('/')) {
+                            img = `uploads/${img}`;
+                        }
+                        newRow.imagePath = img || null;
+                    } 
+                    // --- CORRECCIÓN ---
+                    // Ser más flexible con los nombres de columna para estado y encargado
+                    else if (lowerKey.startsWith('estado') || lowerKey.startsWith('status')) {
+                         newRow.estado = row[key];
                     }
-                } else {
-                    newRow.incorporacion = null;
+                    else if (lowerKey.startsWith('area')) newRow.area = row[key];
+                    else if (lowerKey.startsWith('encargado') || lowerKey.startsWith('responsable')) {
+                         newRow.encargado = row[key];
+                    }
                 }
-            } else if (lowerKey.startsWith('imagen') || lowerKey.startsWith('image')) {
-                let img = row[key] ? String(row[key]).trim() : '';
-                if (img && !/^https?:\/\//i.test(img) && !img.startsWith('/')) {
-                    img = `uploads/${img}`;
-                }
-                newRow.imagePath = img || null;
-            } 
-            // --- CORRECCIÓN ---
-            // Ser más flexible con los nombres de columna para estado y encargado
-            else if (lowerKey.startsWith('estado') || lowerKey.startsWith('status')) {
-                 newRow.estado = row[key];
-            }
-            else if (lowerKey.startsWith('area')) newRow.area = row[key];
-            else if (lowerKey.startsWith('encargado') || lowerKey.startsWith('responsable')) {
-                 newRow.encargado = row[key];
-            }
-        }
-        return newRow;
-    });
-            
+                return newRow;
+            });
 
         const response = await fetch(`${API_URL}bulk_import.php`, {
             method: 'POST',

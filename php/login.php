@@ -2,14 +2,9 @@
 // --- VERSIÓN DE DIAGNÓSTICO FINAL ---
 
 // Paso 1: Forzar la visualización de todos los errores posibles.
-// Esto es lo más importante. Si algo está mal, ahora lo veremos.
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
-
-// Paso 2: El resto del código continúa normal.
-// Si hay un error en 'db_connect.php' o en cualquier otra parte,
-// las líneas de arriba harán que se muestre en la respuesta.
 
 require_once 'db_connect.php';
 session_start();
@@ -27,12 +22,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit();
     }
     
-    // El error podría estar en la preparación de esta consulta.
-    $stmt = $conn->prepare("SELECT id, password_hash, area_id FROM users WHERE username = ?");
+    // CAMBIO: La consulta ahora también selecciona el campo is_admin
+    $stmt = $conn->prepare("SELECT id, password_hash, area_id, is_admin FROM users WHERE username = ?");
     
-    // Si la preparación falla, el error se mostrará.
     if ($stmt === false) {
-        // En caso de que la visualización de errores esté desactivada, enviamos un error JSON claro.
         $response['message'] = 'Error de servidor: Fallo al preparar la consulta. ' . $conn->error;
         echo json_encode($response);
         exit();
@@ -49,12 +42,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['username'] = $username;
             $_SESSION['area_id'] = $user['area_id'];
-            $_SESSION['is_admin'] = ($username === 'admin');
+            // CAMBIO: El rol de admin ahora se lee de la base de datos
+            $_SESSION['is_admin'] = (bool)$user['is_admin'];
 
             $response['success'] = true;
             $response['message'] = 'Inicio de sesión exitosa.';
             $response['areaId'] = $user['area_id'];
-            $response['isAdmin'] = ($username === 'admin');
+            // CAMBIO: Se devuelve el rol de admin desde la base de datos
+            $response['isAdmin'] = (bool)$user['is_admin'];
         } else {
             $response['message'] = 'Usuario o contraseña incorrecta.';
         }

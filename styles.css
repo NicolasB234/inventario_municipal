@@ -209,6 +209,12 @@ input[type="text"], input[type="password"], input[type="number"], input[type="da
 input:focus, select:focus, textarea:focus { outline: none; border-color: var(--color-primario); }
 .form-row { margin-bottom: 15px; }
 
+input:disabled, textarea:disabled {
+    background-color: #e9ecef;
+    opacity: 0.8;
+    cursor: not-allowed;
+}
+
 /* --- PÁGINA DE LOGIN --- */
 .auth-container > div { 
     background-color: var(--color-superficie); padding: 30px; border-radius: var(--radio-borde);
@@ -328,6 +334,14 @@ body.sidebar-open #sidebar-overlay { opacity: 1; visibility: visible; }
     border-bottom: 1px solid var(--color-borde); padding: 10px 15px; text-align: left; font-size: 0.9em;
     white-space: nowrap;
 }
+
+/* --- CAMBIO: AJUSTAR TEXTO EN TABLA DE NOTIFICACIONES --- */
+.log-table td:last-child {
+    white-space: normal;
+    word-wrap: break-word;
+}
+/* --- FIN DEL CAMBIO --- */
+
 #inventory-table th, .log-table th {
     background-color: #333; color: var(--color-texto-primario);
     font-weight: 600; text-transform: uppercase; font-size: 0.8em;
@@ -458,6 +472,11 @@ body.dark-mode h1, body.dark-mode h2, body.dark-mode h3, body.dark-mode .sidebar
 body.dark-mode .header-btn, body.dark-mode .not-button, body.dark-mode .close-modal, body.dark-mode .theme-selector-container label, body.dark-mode #theme-selector, body.dark-mode .chatbot-header #close-chatbot-btn { color: #ffffff; border-color: var(--color-borde); }
 body.dark-mode .theme-selector-container { background-color: var(--color-fondo); }
 body.dark-mode input, body.dark-mode select, body.dark-mode textarea { background-color: #333; color: #e0e0e0; border-color: #555; }
+body.dark-mode input:disabled, body.dark-mode textarea:disabled {
+    background-color: #404040;
+    color: #a0a0a0;
+    border-color: #555;
+}
 body.dark-mode #inventory-table, body.dark-mode .log-table { background-color: var(--color-superficie); }
 body.dark-mode #inventory-table th, body.dark-mode .log-table th { background-color: #3c3c3c; }
 body.dark-mode #inventory-table td, body.dark-mode .log-table td { border-color: var(--color-borde); color: var(--color-texto-secundario); }
@@ -476,11 +495,16 @@ body.night-mode h1, body.night-mode h2, body.night-mode h3, body.night-mode .sid
 body.night-mode #org-nav .node-content.selected { background-color: var(--color-primario); color: var(--color-texto-primario); }
 body.night-mode .theme-selector-container { background-color: var(--color-fondo); }
 body.night-mode input, body.night-mode select, body.night-mode textarea { background-color: #3d2828; color: var(--color-texto-secundario); border-color: #6b4444; }
+body.night-mode input:disabled, body.night-mode textarea:disabled {
+    background-color: #5a3f3f;
+    color: #ab8e8e;
+    border-color: #6b4444;
+}
 body.night-mode .header-btn, body.night-mode .not-button, body.night-mode .close-modal, body.night-mode .theme-selector-container label, body.night-mode #theme-selector, body.night-mode .chatbot-header #close-chatbot-btn { color: var(--color-texto-secundario); border-color: var(--color-borde); }
 body.night-mode #inventory-table, body.night-mode .log-table { background-color: var(--color-superficie); }
 body.night-mode #inventory-table th, body.night-mode .log-table th { background-color: #5a3f3f; }
 body.night-mode #inventory-table td, body.night-mode .log-table td { border-color: var(--color-borde); color: var(--color-texto-secundario); }
-body.night-mode #inventory-table tbody tr:hover, body.night-mode .log-table tr:hover { background-color: #5a3f3f; }
+body.night-mode #inventory-table tbody tr:hover, body.night-mode .log-table tbody tr:hover { background-color: #5a3f3f; }
 body.night-mode .log-table tr:nth-child(even) { background-color: #523939; }
 body.night-mode #org-nav .node-content:hover, body.night-mode .filter-controls-container, body.night-mode #area-search-results .result-item:hover { background-color: #5a3f3f; }
 body.night-mode .request-header, body.night-mode .request-footer { background-color: rgba(255,255,255,0.05); }
@@ -668,9 +692,7 @@ body.night-mode .notifications-list .notif-area {
 /* Cerrar menú al hacer click fuera (comportamiento JS), y pequeña animación */
 .dropdown-menu { opacity: 0; transform: translateY(-6px); transition: opacity .15s ease, transform .15s ease; pointer-events: none; }
 .header-actions.open .dropdown-menu { opacity: 1; transform: translateY(0); pointer-events: auto; } 
-/* ... (Estilos existentes) ... */
 
-/* --- INICIO DE LA MODIFICACIÓN: ESTILOS DE PAGINACIÓN --- */
 .pagination-controls {
     display: flex;
     justify-content: space-between;
@@ -702,45 +724,22 @@ body.night-mode .pagination-controls button:disabled {
     background-color: #6b4444;
     color: #ab8e8e;
 }
-/* ... (Estilos existentes) ... */
 
-/* --- ORGANIGRAMA Y FILTROS --- */
-.sidebar-search-container { display: none; margin-bottom: 15px; }
-#org-search-input { width: 100%; padding: 10px 15px; border-radius: var(--radio-borde); border: 1px solid var(--color-borde); background-color: var(--color-fondo); transition: all 0.2s ease; }
-#org-search-input:focus { border-color: var(--color-primario); background-color: var(--color-superficie); }
-#org-nav li.filtered-out { display: none; }
-#org-nav .node-content { display: flex; align-items: center; padding: 8px 10px; cursor: pointer; border-radius: var(--radio-borde); transition: background-color 0.2s ease; font-size: 0.9em; }
-#org-nav .node-content:hover { background-color: var(--color-fondo); }
-#org-nav .node-content.selected { background-color: var(--color-primario); color: var(--color-texto-primario); font-weight: 600; }
-
-/* --- INICIO DE LA MODIFICACIÓN --- */
-/* Estilos para el contenedor del ícono (antes la flecha) */
 #org-nav .toggle {
-    width: 20px; /* Ancho fijo para alinear el texto */
+    width: 20px;
     text-align: center;
     margin-right: 5px;
     color: #a0a0a0;
 }
 
-/* El texto del área ahora es más flexible */
 #org-nav .node-name {
     flex-grow: 1;
 }
 
-/* Cuando un área está seleccionada, el ícono también cambia de color */
 #org-nav .node-content.selected .toggle {
     color: var(--color-texto-primario);
 }
 
-#all-areas-btn { margin-bottom: 10px; border-bottom: 1px solid var(--color-borde); font-weight: 600; padding: 8px 10px; cursor: pointer;}
-#org-nav ul { list-style: none; padding-left: 0; }
-#org-nav ul ul { display: none; padding-left: 15px; margin-top: 5px; border-left: 1px solid var(--color-borde); }
-#org-nav ul li.expanded > ul { display: block; }
-
-/* ... (Estilos existentes) ... */
-
-/* --- INICIO DE LA MODIFICACIÓN --- */
-/* Contenedor principal de la barra de acciones superior */
 .inventory-controls-wrapper {
     display: flex;
     justify-content: space-between;
@@ -756,7 +755,6 @@ body.night-mode .pagination-controls button:disabled {
     gap: 10px;
 }
 
-/* Estilos para el menú de selección de columnas */
 .column-selector-wrapper {
     position: relative;
     display: inline-block;
@@ -773,7 +771,7 @@ body.night-mode .pagination-controls button:disabled {
     padding: 10px;
     z-index: 1500;
     min-width: 200px;
-    display: none; /* Se controla por JS */
+    display: none;
 }
 
 #column-selector-menu label {
@@ -792,7 +790,6 @@ body.night-mode .pagination-controls button:disabled {
     margin-right: 10px;
 }
 
-/* Reglas CSS para ocultar las columnas */
 #inventory-table.hide-col-codigo_item .col-codigo_item,
 #inventory-table.hide-col-name .col-name,
 #inventory-table.hide-col-quantity .col-quantity,
@@ -805,34 +802,28 @@ body.night-mode .pagination-controls button:disabled {
 #inventory-table.hide-col-actions .col-actions {
     display: none;
 }
-/* ... (Estilos existentes) ... */
 
-/* --- INICIO DE LA MODIFICACIÓN --- */
-/* Estilos para la funcionalidad de arrastrar la tabla */
 .table-responsive {
     width: 100%;
     overflow-x: auto;
-    cursor: grab; /* Muestra una mano abierta para indicar que se puede arrastrar */
-    user-select: none; /* Evita que el texto se seleccione al arrastrar */
+    cursor: grab;
+    user-select: none;
 }
 
 .table-responsive.active-drag {
-    cursor: grabbing; /* Muestra una mano cerrada mientras se está arrastrando */
+    cursor: grabbing;
     cursor: -webkit-grabbing;
 }
-/* --- FIN DE LA MODIFICACIÓN --- */
 
 #inventory-table, .log-table {
-/* ... (Estilos de la tabla sin cambios) ... */
     cursor: pointer;
     transition: background-color 0.2s ease;
 }
 
 #inventory-table thead th:hover {
-    background-color: #555; /* Un color ligeramente más claro al pasar el cursor */
+    background-color: #555;
 }
 
-/* Reglas CSS para ocultar las columnas */
 #inventory-table.hide-col-codigo_item .col-codigo_item,
 #inventory-table.hide-col-name .col-name,
 #inventory-table.hide-col-quantity .col-quantity,
@@ -846,94 +837,36 @@ body.night-mode .pagination-controls button:disabled {
     display: none;
 }
 
-/* ... (Estilos existentes) ... */
-
-/* --- TABLAS --- */
 .table-responsive {
     width: 100%;
     overflow-x: auto;
-    /* Se elimina el cursor de agarre ya que no se necesita. */
 }
 
-#inventory-table, .log-table {
-    width: 100%; 
-    border-collapse: collapse; 
-    margin-top: 20px; 
-    background-color: var(--color-superficie);
-    border-radius: var(--radio-borde); 
-    box-shadow: var(--sombra-suave); 
-    overflow: hidden;
-}
-#inventory-table th, #inventory-table td, .log-table th, .log-table td { 
-    border-bottom: 1px solid var(--color-borde); 
-    padding: 10px 15px; 
-    text-align: left; 
-    font-size: 0.9em;
-    white-space: nowrap;
-}
-#inventory-table th, .log-table th {
-    background-color: #333; 
-    color: var(--color-texto-primario);
-    font-weight: 600; 
-    text-transform: uppercase; 
-    font-size: 0.8em;
-}
-
-/* --- INICIO DE LA MODIFICACIÓN: COLUMNAS FIJAS --- */
-/* Estilos para que las columnas se queden fijas al hacer scroll */
 .sticky-col {
-    position: -webkit-sticky; /* Para compatibilidad con Safari */
+    position: -webkit-sticky;
     position: sticky;
-    background-color: var(--color-superficie); /* Fondo para que no se vea el texto de atrás */
+    background-color: var(--color-superficie);
 }
 
 body.dark-mode .sticky-col, body.night-mode .sticky-col {
-    background-color: var(--color-superficie); /* Asegurar el fondo en temas oscuros */
+    background-color: var(--color-superficie);
 }
 
-/* Define la posición de cada columna fija */
 .first-col {
     left: 0px;
-    z-index: 3; /* Más alto para la primera columna */
+    z-index: 3;
 }
 
 .second-col {
-    left: 100px; /* Ajustar este valor según el ancho de la primera columna */
+    left: 100px;
     z-index: 2;
 }
 
 .third-col {
-    left: 220px; /* Ajustar según el ancho de las dos primeras */
+    left: 220px;
     z-index: 1;
 }
 
-/* Darle un borde sutil a la última columna fija para separarla */
 #inventory-table .third-col {
     border-right: 2px solid var(--color-primario);
 }
-/* --- FIN DE LA MODIFICACIÓN --- */
-
-
-#inventory-table tbody tr:hover, .log-table tbody tr:hover { background-color: #f9f9f9; }
-#inventory-table .actions button { padding: 6px 10px; margin-right: 5px; font-size: 0.85em; }
-#inventory-table .actions button:hover { transform: scale(1.1); }
-.log-table tr:nth-child(even) { background-color: #f2f2f2; }
-.back-link { display: inline-block; margin-bottom: 20px; }
-.pagination-controls {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 20px 0;
-    margin-top: 15px;
-    border-top: 1px solid var(--color-borde);
-}
-.pagination-controls span {
-    font-size: 0.95em;
-    font-weight: 600;
-}
-.pagination-controls button:disabled {
-    background-color: #cccccc;
-    cursor: not-allowed;
-    transform: none;
-}
-/* ... (Resto de los estilos) ... */

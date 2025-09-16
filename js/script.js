@@ -24,12 +24,12 @@ const PHP_BASE_URL = 'php/';
 let localNotifications = [];
 let lastNotificationId = 0;
 let lastAdminRequestCount = 0;
-let lastAdminLogId = 0; 
-let pollingInterval; 
+let lastAdminLogId = 0;
+let pollingInterval;
 
 function startPolling() {
     if (pollingInterval) return;
-    fetchUpdates(); 
+    fetchUpdates();
     pollingInterval = setInterval(fetchUpdates, 5000);
 }
 
@@ -73,7 +73,7 @@ function shakeBell() {
 async function fetchUpdates() {
     const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
     const lastId = isAdmin ? lastAdminLogId : lastNotificationId;
-    
+
     try {
         const response = await fetch(`${PHP_BASE_URL}get_updates.php?last_id=${lastId}`);
         const data = await response.json();
@@ -91,7 +91,7 @@ async function fetchUpdates() {
                     addNotificationToList(notif);
                     lastAdminLogId = Math.max(lastAdminLogId, notif.id);
                 });
-                
+
                 const selectedNodeElement = document.querySelector('#org-nav .node-content.selected');
                 if (selectedNodeElement) {
                     const nodeId = (selectedNodeElement.id === 'all-areas-btn') ? '' : selectedNodeElement.parentElement.dataset.nodeId;
@@ -108,7 +108,7 @@ async function fetchUpdates() {
                 shakeBell();
                 updateNotificationCounter(localNotifications.length);
             }
-            
+
             if (data.refresh_inventory) {
                 const selectedNodeElement = document.querySelector('#org-nav .node-content.selected');
                 if (selectedNodeElement) {
@@ -180,11 +180,11 @@ function toggleNotifPanel() {
             });
         }
     }
-    
+
     const link = isAdmin ? 'solicitudes.html' : 'notificaciones.html';
     const linkText = isAdmin ? `Ir a Solicitudes (${lastAdminRequestCount})` : 'Ver todo el historial';
     notificationsHtml += `</div><a href="${link}" class="view-all-notifs">${linkText}</a>`;
-    
+
     notifPanel.innerHTML = notificationsHtml;
     document.body.appendChild(notifPanel);
 
@@ -217,11 +217,15 @@ async function handleLogin(username, password) {
     }
 }
 
-async function handleRegister(username, password, areaId) {
+// CAMBIO: La función de registro ahora también envía si el usuario es admin
+async function handleRegister(username, password, areaId, isAdmin) {
     const formData = new FormData();
     formData.append('username', username);
     formData.append('password', password);
     formData.append('area_id', areaId);
+    if (isAdmin) {
+        formData.append('is_admin', '1');
+    }
     try {
         const response = await fetch(`${PHP_BASE_URL}register.php`, { method: 'POST', body: formData });
         return await response.json();
@@ -281,12 +285,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             window.location.href = 'index.html';
             return;
         }
-        
+
         const loginForm = document.getElementById('login-section');
         const registerForm = document.getElementById('register-section');
         const loginMessage = document.getElementById('login-message');
         const registerMessage = document.getElementById('register-message');
-        
+
         document.querySelectorAll('.toggle-form').forEach(button => {
             button.addEventListener('click', () => {
                 loginForm.classList.toggle('active');
@@ -313,25 +317,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                 loginMessage.textContent = result.message || 'Error al iniciar sesión.';
             }
         });
-        
+
         const searchInput = document.getElementById('area-search-input');
         const searchResults = document.getElementById('area-search-results');
         const hiddenAreaIdInput = document.getElementById('register-area-id');
         const allAreas = getAllInventoryNodes(orgStructure);
 
         searchInput.addEventListener('input', () => {
-            // --- INICIO DE LA MODIFICACIÓN ---
             const query = normalizeText(searchInput.value);
-            // --- FIN DE LA MODIFICACIÓN ---
             searchResults.innerHTML = '';
             hiddenAreaIdInput.value = '';
             if (query.length < 2) {
                 searchResults.style.display = 'none';
                 return;
             }
-            // --- INICIO DE LA MODIFICACIÓN ---
             const filteredAreas = allAreas.filter(area => normalizeText(area.name).includes(query));
-            // --- FIN DE LA MODIFICACIÓN ---
             if (filteredAreas.length > 0) {
                 filteredAreas.forEach(area => {
                     const item = document.createElement('div');
@@ -355,16 +355,20 @@ document.addEventListener('DOMContentLoaded', async () => {
                 searchResults.style.display = 'none';
             }
         });
-        
+
         document.getElementById('register-btn').addEventListener('click', async () => {
             const username = document.getElementById('register-username').value.trim();
             const password = document.getElementById('register-password').value.trim();
             const areaId = hiddenAreaIdInput.value;
+            // CAMBIO: Leer el valor del checkbox
+            const isAdmin = document.getElementById('register-is-admin').checked;
+
             if (!username || !password || !areaId) {
                 registerMessage.textContent = 'Por favor, rellene todos los campos (incluyendo el área).';
                 return;
             }
-            const result = await handleRegister(username, password, areaId);
+            // CAMBIO: Enviar el valor del checkbox a la función
+            const result = await handleRegister(username, password, areaId, isAdmin);
             registerMessage.textContent = result.message;
             registerMessage.style.color = result.success ? '#2ecc71' : '#e74c3c';
             if (result.success) {
@@ -381,16 +385,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             window.location.href = 'login.html';
             return;
         }
-        
+
         setupModalClosers();
-        
+
         const notificationBellButton = document.getElementById('notification-bell-btn');
         if (notificationBellButton) {
             notificationBellButton.addEventListener('click', toggleNotifPanel);
         }
-        
-        initializeNotifications(); 
-        
+
+        initializeNotifications();
+
         const viewButtons = document.querySelectorAll('.view-btn');
         const viewSections = document.querySelectorAll('.view-section');
 
@@ -418,59 +422,48 @@ document.addEventListener('DOMContentLoaded', async () => {
         let selectedNodeElement = null;
 
         function buildOrgTree(nodes, parentElement) {
-    const ul = document.createElement('ul');
-    nodes.forEach(node => {
-        const li = document.createElement('li');
-        li.dataset.nodeId = node.id;
-        const nodeContent = document.createElement('div');
-        nodeContent.className = 'node-content';
-        
-        // El span 'toggle' ahora solo mostrará un ícono, ya no es clickeable por sí mismo.
-        const toggle = document.createElement('span');
-        toggle.className = 'toggle';
+            const ul = document.createElement('ul');
+            nodes.forEach(node => {
+                const li = document.createElement('li');
+                li.dataset.nodeId = node.id;
+                const nodeContent = document.createElement('div');
+                nodeContent.className = 'node-content';
+                
+                const toggle = document.createElement('span');
+                toggle.className = 'toggle';
 
-        const nodeNameSpan = document.createElement('span');
-        nodeNameSpan.textContent = node.name;
-        nodeNameSpan.className = 'node-name'; // Clase para darle más peso al texto
+                const nodeNameSpan = document.createElement('span');
+                nodeNameSpan.textContent = node.name;
+                nodeNameSpan.className = 'node-name';
 
-        if (node.children && node.children.length > 0) {
-            toggle.innerHTML = '<i class="fas fa-caret-right"></i>'; // Flecha por defecto
+                if (node.children && node.children.length > 0) {
+                    // --- MODIFICACIÓN DE ÍCONO ---
+                    toggle.innerHTML = '<i class="fas fa-bars"></i>';
+                }
+
+                nodeContent.append(toggle, nodeNameSpan);
+
+                nodeContent.onclick = () => {
+                    selectNode(li, node);
+                    if (node.children && node.children.length > 0) {
+                        toggleNode(li);
+                    }
+                };
+
+                li.appendChild(nodeContent);
+                if (node.children) {
+                    buildOrgTree(node.children, li);
+                }
+                ul.appendChild(li);
+            });
+            parentElement.appendChild(ul);
         }
-
-        nodeContent.append(toggle, nodeNameSpan);
-
-        // El evento de click ahora está en todo el div (texto + ícono)
-        nodeContent.onclick = () => {
-            // Acción 1: Siempre selecciona el nodo y carga su inventario
-            selectNode(li, node);
-            
-            // Acción 2: Si tiene hijos, también despliega/contrae el submenú
-            if (node.children && node.children.length > 0) {
-                toggleNode(li);
-            }
-        };
-
-        li.appendChild(nodeContent);
-        if (node.children) {
-            buildOrgTree(node.children, li);
-        }
-        ul.appendChild(li);
-    });
-    parentElement.appendChild(ul);
-}
 
         function toggleNode(liElement) {
-    liElement.classList.toggle('expanded');
-    const toggleIcon = liElement.querySelector('.toggle i');
-    if (toggleIcon) {
-        // Cambia el ícono de la flecha
-        if (liElement.classList.contains('expanded')) {
-            toggleIcon.className = 'fas fa-caret-down';
-        } else {
-            toggleIcon.className = 'fas fa-caret-right';
+            liElement.classList.toggle('expanded');
+            // --- MODIFICACIÓN DE ÍCONO ---
+            // Ya no es necesario cambiar el ícono al hacer clic.
         }
-    }
-}
 
         const sidebarToggleBtn = document.getElementById('sidebar-toggle-btn');
         const sidebarOverlay = document.getElementById('sidebar-overlay');
@@ -482,6 +475,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (sidebarToggleBtn) sidebarToggleBtn.addEventListener('click', openSidebar);
         if (sidebarOverlay) sidebarOverlay.addEventListener('click', closeSidebar);
 
+        // CAMBIO: Esta función ahora construye el mensaje de bienvenida dinámico
         function selectNode(liElement, node) {
             if (selectedNodeElement) {
                 selectedNodeElement.classList.remove('selected');
@@ -490,7 +484,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (liElement) {
                  liElement.querySelector('.node-content').classList.add('selected');
                  selectedNodeElement = liElement.querySelector('.node-content');
-            } else { 
+            } else {
                 const allAreasButton = document.getElementById('all-areas-btn');
                 if (allAreasButton) {
                     allAreasButton.classList.add('selected');
@@ -498,6 +492,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
             
+            // --- LÓGICA DEL MENSAJE DE BIENVENIDA DINÁMICO ---
+            let title = `Bienvenido`;
+            if (isAdmin) {
+                title += ` Jefe de Área`;
+            }
+            title += ` ${currentUsername}`;
+
+            
+            // --- FIN DE LA LÓGICA ---
 
             displayInventory({ id: node.id, name: node.name }, isAdmin);
         }
@@ -540,8 +543,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         function init() {
             orgNav.innerHTML = '';
             
-            const welcomeMessage = `Bienvenido, ${currentUsername}`;
+            // CAMBIO: Mensaje de bienvenida inicial
+            let welcomeMessage = `Bienvenido`;
+            if (isAdmin) {
+                welcomeMessage += ` Jefe de Área`;
+            }
+            welcomeMessage += `, ${currentUsername}`;
             contentTitle.textContent = welcomeMessage;
+
             setupHeaderButtons();
             const searchContainer = document.querySelector('.sidebar-search-container');
 
@@ -590,16 +599,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         const orgSearchInput = document.getElementById('org-search-input');
         if (orgSearchInput) {
             orgSearchInput.addEventListener('input', () => {
-                // --- INICIO DE LA MODIFICACIÓN ---
                 const searchTerm = normalizeText(orgSearchInput.value);
-                // --- FIN DE LA MODIFICACIÓN ---
                 const allNodes = orgNav.querySelectorAll('#org-nav li');
 
                 allNodes.forEach(li => {
                     const nodeNameElement = li.querySelector('.node-content > span:last-of-type');
-                    // --- INICIO DE LA MODIFICACIÓN ---
                     const nodeName = nodeNameElement ? normalizeText(nodeNameElement.textContent) : '';
-                    // --- FIN DE LA MODIFICACIÓN ---
                     if (nodeName.includes(searchTerm)) {
                         li.style.display = "";
                         let parent = li.parentElement.closest('li');

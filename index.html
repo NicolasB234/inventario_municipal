@@ -100,6 +100,12 @@
         <h2>Agregar Ítem</h2>
         <form id="form-agregar-item" enctype="multipart/form-data">
           <input type="hidden" name="id"> <input type="hidden" name="node_id"> <input type="hidden" name="existingImagePath">
+          
+          <div class="form-row" id="area-display-row" style="display: none;">
+            <label for="area-display-text">Área del Ítem</label>
+            <input type="text" id="area-display-text" disabled>
+          </div>
+
           <div class="form-row" id="area-selection-row" style="display: none;">
             <label for="area-search-input-modal">Área de Destino</label>
             <div class="search-container">

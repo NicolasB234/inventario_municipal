@@ -18,9 +18,9 @@
             <div class="theme-selector-container">
                 <label for="theme-selector"><i class="fas fa-palette"></i></label>
                 <select id="theme-selector">
-                    <option value="light">☀️ Modo Claro</option>
-                    <option value="dark-mode">🌙 Modo Oscuro</option>
-                    <option value="night-mode">🦉 Modo Nocturno</option>
+                    <option value="light">☀️ Claro</option>
+                    <option value="dark-mode">🌙 Oscuro</option>
+                    <option value="night-mode">🦉 Nocturno</option>
                 </select>
             </div>
         </div>
@@ -57,6 +57,10 @@
                     <input type="hidden" id="register-area-id" name="area_id">
                     <div id="area-search-results" class="search-results"></div>
                 </div>
+                <div class="form-row" style="text-align: left; display: flex; align-items: center; gap: 10px;">
+                    <input type="checkbox" id="register-is-admin" name="is_admin" value="1" style="width: auto;">
+                    <label for="register-is-admin" style="margin: 0;">Es Jefe de Área</label>
+                </div>
                 <div class="form-row">
                     <button id="register-btn" type="button">Registrarse</button>
                 </div>
@@ -66,7 +70,7 @@
         </div>
     </div>
     <footer class="page-footer">
-        <span>Desarrollado por TuNombre/TuEmpresa</span>
+        <span>Desarrollado por...</span>
     </footer>
     <script type="module" src="js/script.js"></script>
     <script src="js/theme-switcher.js"></script>

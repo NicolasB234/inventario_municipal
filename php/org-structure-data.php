@@ -4,13 +4,13 @@ $orgStructure = [
     [
         'id' => 'auditor',
         'name' => 'Auditor',
-        'type' => 'area', 
+        'type' => 'area',
         'children' => []
     ],
     [
         'id' => 'tribunal-faltas',
-        'name' => 'Tribunal de faltas',
-        'type' => 'area', 
+        'name' => 'Tribunal de Faltas',
+        'type' => 'area',
         'children' => []
     ],
     [
@@ -20,7 +20,7 @@ $orgStructure = [
         'children' => [
             [
                 'id' => 'unclassified',
-                'name' => 'Área no reconocida / A clasificar',
+                'name' => 'Área No Reconocida / A Clasificar',
                 'type' => 'area',
                 'children' => []
             ],
@@ -30,20 +30,18 @@ $orgStructure = [
                 'type' => 'secretaria',
                 'children' => [
                     [
-                        'id' => 'dir-catastrofe',
-                        'name' => 'Dirección de Catástrofe',
+                        'id' => 'dir-catastro',
+                        'name' => 'Dirección de Catastro',
                         'type' => 'direccion',
-                        'children' => [
-                            ['id' => 'coord-concientizacion-ambiental', 'name' => 'Coordinación de Concientización Ambiental', 'type' => 'coordinacion', 'children' => []],
-                        ]
+                        'children' => []
                     ],
                     [
                         'id' => 'dir-bromatologia',
                         'name' => 'Dirección de Bromatología',
                         'type' => 'direccion',
                         'children' => [
+                            ['id' => 'coord-concientizacion-ambiental', 'name' => 'Coordinación de Concientización Ambiental', 'type' => 'coordinacion', 'children' => []],
                             ['id' => 'coord-zoonosis', 'name' => 'Coordinación de Zoonosis', 'type' => 'coordinacion', 'children' => []],
-
                         ]
                     ],
                     ['id' => 'dir-empleo-capacitacion', 'name' => 'Dirección de Empleo y Capacitación', 'type' => 'direccion', 'children' => []],
@@ -69,6 +67,7 @@ $orgStructure = [
                     ['id' => 'dir-ninez-familia', 'name' => 'Dirección de Niñez, Adolescencia y Familia', 'type' => 'direccion', 'children' => []],
                     ['id' => 'sub-familia', 'name' => 'Subdirección de Familia', 'type' => 'subdireccion', 'children' => []],
                     ['id' => 'dir-recursos-naturales', 'name' => 'Dirección de Recursos Naturales', 'type' => 'direccion', 'children' => []],
+                    ['id' => 'centro-reclamos', 'name' => 'Centro de Reclamos', 'type' => 'area', 'children' => []],
                 ]
             ],
             [
@@ -76,8 +75,17 @@ $orgStructure = [
                 'name' => 'Secretaría de Hacienda',
                 'type' => 'secretaria',
                 'children' => [
-                    ['id' => 'sub-compras', 'name' => 'Subdirección Compras', 'type' => 'subdireccion', 'children' => []],
-                    ['id' => 'dir-ingresos-publicos', 'name' => 'Dirección de Ingresos Públicos', 'type' => 'direccion', 'children' => []],
+                    ['id' => 'caja-recaudadora-invico', 'name' => 'Caja Recaudadora Barrio Invico', 'type' => 'area', 'children' => []],
+                    ['id' => 'sub-compras', 'name' => 'Subdirección de Compras', 'type' => 'subdireccion', 'children' => []],
+                    [
+                        'id' => 'dir-ingresos-publicos',
+                        'name' => 'Dirección de Ingresos Públicos',
+                        'type' => 'direccion',
+                        'children' => [
+                            ['id' => 'atencion-publico', 'name' => 'Atención al Público (Municipio)', 'type' => 'area', 'children' => []],
+                            ['id' => 'impresion-masiva', 'name' => 'Impresión Masiva (Catastro)', 'type' => 'area', 'children' => []]
+                        ]
+                    ],
                     ['id' => 'coord-tesoreria', 'name' => 'Coordinación de Tesorería', 'type' => 'coordinacion', 'children' => []],
                     ['id' => 'coord-convenios-pagos', 'name' => 'Coordinación de Convenios y Planes de Pagos', 'type' => 'coordinacion', 'children' => []],
                     ['id' => 'dir-contable-presupuestaria', 'name' => 'Dirección Contable y de Ejecución Presupuestaria', 'type' => 'direccion', 'children' => []],
@@ -118,17 +126,24 @@ $orgStructure = [
                     ],
                     [
                         'id' => 'sub-parques-plazas',
-                        'name' => 'Subdirección de Parque, Plazas y Paseos',
+                        'name' => 'Subdirección de Parques, Plazas y Paseos',
                         'type' => 'subdireccion',
                         'children' => [
-                            ['id' => 'coord-mantenimiento-plazas', 'name' => 'Coordinación de Mantenimiento de Plazas y Paseos', 'type' => 'coordinacion', 'children' => []],
-                            ['id' => 'coord-embellecimiento', 'name' => 'Coordinación de Embellecimiento de Parque, Plaza y Paseos', 'type' => 'coordinacion', 'children' => []],
+                            [
+                                'id' => 'coord-mantenimiento-plazas', 'name' => 'Coordinación de Mantenimiento de Plazas y Paseos', 'type' => 'coordinacion', 'children' => [
+                                    ['id' => 'Parque-Mita-Rori', 'name' => 'Parque Mita Rori', 'type' => 'parque', 'children' => []],
+                                    ['id' => 'camping-municipal', 'name' => 'Camping Municipal', 'type' => 'parque', 'children' => []],
+                                ]
+                            ],
+                            ['id' => 'coord-embellecimiento', 'name' => 'Coordinación de Embellecimiento de Parques, Plazas y Paseos', 'type' => 'coordinacion', 'children' => []],
                             ['id' => 'coord-recoleccion', 'name' => 'Coordinación de Recolección', 'type' => 'coordinacion', 'children' => []],
                             ['id' => 'coord-agua-cloacas', 'name' => 'Coordinación de Conexión de Agua y Cloacas', 'type' => 'coordinacion', 'children' => []],
-                            ['id' => 'coord-cementerio', 'name' => 'Coordinación Cementerio', 'type' => 'coordinacion', 'children' => []],
-                            ['id' => 'coord-parque-acuatico', 'name' => 'Coordinación Parque Acuático', 'type' => 'coordinacion', 'children' => []],
+                            ['id' => 'coord-cementerio', 'name' => 'Cementerio', 'type' => 'area', 'children' => []],
+                            ['id' => 'coord-parque-acuatico', 'name' => 'Parque Acuático', 'type' => 'area', 'children' => []],
                         ]
                     ],
+                    ['id' => 'sub-alumbrado-publico', 'name' => 'Subdirección de Alumbrado Público', 'type' => 'subdireccion', 'children' => []],
+                    ['id' => 'parque-martin-fierro', 'name' => 'Parque Martín Fierro', 'type' => 'parque', 'children' => []],
                 ]
             ],
             [
@@ -152,19 +167,42 @@ $orgStructure = [
                 ]
             ],
             ['id' => 'dir-protocolo', 'name' => 'Dirección de Ceremonial y Protocolo', 'type' => 'direccion', 'children' => []],
-            ['id' => 'dir-personal', 'name' => 'Dirección de Personal', 'type' => 'direccion', 'children' => []],
+            [
+                'id' => 'dir-personal',
+                'name' => 'Dirección de Personal',
+                'type' => 'direccion',
+                'children' => [
+                    ['id' => 'oficina-informes-terminal', 'name' => 'Oficina de Informes (Terminal)', 'type' => 'area', 'children' => []]
+                ]
+            ],
             ['id' => 'dir-secretaria-privada', 'name' => 'Dirección de Secretaría Privada', 'type' => 'direccion', 'children' => []],
-            ['id' => 'dir-prensa', 'name' => 'Dirección de Prensa y Coordinación', 'type' => 'direccion', 'children' => []],
+            [
+                'id' => 'dir-prensa',
+                'name' => 'Dirección de Prensa y Comunicación',
+                'type' => 'direccion',
+                'children' => [
+                    ['id' => 'repetidora-fm', 'name' => 'Repetidora FM Municipal', 'type' => 'area', 'children' => []],
+                    ['id' => 'radio-fm-ciudad', 'name' => 'Radio FM Ciudad', 'type' => 'area', 'children' => []]
+                ]
+            ],
             ['id' => 'dir-control-patrimonial', 'name' => 'Dirección de Control Patrimonial', 'type' => 'direccion', 'children' => []],
             [
                 'id' => 'dir-accion-social',
                 'name' => 'Dirección de Acción Social',
                 'type' => 'direccion',
                 'children' => [
+                    ['id' => 'salon-vieja-estacion', 'name' => 'Salón Vieja Estación', 'type' => 'area', 'children' => []],
                     ['id' => 'sub-accion-social', 'name' => 'Subdirección de Acción Social', 'type' => 'subdireccion', 'children' => []],
                     ['id' => 'coord-cim', 'name' => 'Coordinación del CIM', 'type' => 'coordinacion', 'children' => []],
                     ['id' => 'coord-cic', 'name' => 'Coordinación del CIC', 'type' => 'coordinacion', 'children' => []],
-                    ['id' => 'coord-refugio', 'name' => 'Coordinación de Refugio', 'type' => 'coordinacion', 'children' => []],
+                    [
+                        'id' => 'coord-refugio',
+                        'name' => 'Coordinación de Refugio',
+                        'type' => 'coordinacion',
+                        'children' => [
+                            ['id' => 'salon-barrio-norte', 'name' => 'Salón Barrio Norte', 'type' => 'area', 'children' => []],
+                        ]
+                    ],
                 ]
             ],
             [
@@ -172,28 +210,23 @@ $orgStructure = [
                 'name' => 'Viceintendencia',
                 'type' => 'viceintendencia',
                 'children' => [
-                    ['id' => 'area-salud', 'name' => 'Área de Salud', 'type' => 'area', 'children' => []],
                     [
                         'id' => 'dir-salud',
                         'name' => 'Dirección de Salud',
                         'type' => 'direccion',
-                     
                         'children' => [
-                            ['id' => 'sala-salud-1', 'name' => 'Sala de Salud 1', 'type' => 'area', 'children' => []],
-                            ['id' => 'sala-salud-2', 'name' => 'Sala de Salud 2', 'type' => 'area', 'children' => []],
-                            ['id' => 'sala-salud-3', 'name' => 'Sala de Salud 3', 'type' => 'area', 'children' => []],
-                            ['id' => 'sala-salud-4', 'name' => 'Sala de Salud 4', 'type' => 'area', 'children' => []],
-                            ['id' => 'sala-salud-5', 'name' => 'Sala de Salud 5', 'type' => 'area', 'children' => []],
-                            ['id' => 'sala-salud-6', 'name' => 'Sala de Salud 6', 'type' => 'area', 'children' => []],
-                            ['id' => 'sala-salud-7', 'name' => 'Sala de Salud 7', 'type' => 'area', 'children' => []],
-                            ['id' => 'sala-salud-8', 'name' => 'Sala de Salud 8', 'type' => 'area', 'children' => []],
-                            ['id' => 'sala-salud-9', 'name' => 'Sala de Salud 9', 'type' => 'area', 'children' => []],
+                            ['id' => 'sala-salud-Juan', 'name' => 'Sala de Salud Juan Pedro Sorribes', 'type' => 'area', 'children' => []],
+                            ['id' => 'sala-salud-teresita', 'name' => 'Sala de Salud Hermana Teresita', 'type' => 'area', 'children' => []],
+                            ['id' => 'sala-salud-Grossi', 'name' => 'Sala de Salud Martinez Grossi', 'type' => 'area', 'children' => []],
+                            ['id' => 'sala-salud-garcia', 'name' => 'Sala de Salud Dr. Otto Garcia', 'type' => 'area', 'children' => []],
+                            ['id' => 'centro-odontologico', 'name' => 'Centro Odontológico CIC', 'type' => 'area', 'children' => []],
+                            ['id' => 'sala-salud-Ramon', 'name' => 'Sala de Salud San Ramon', 'type' => 'area', 'children' => []],
+                            ['id' => 'sala-salud-Rodriguez', 'name' => 'Sala de Salud Dr. Carlos Rodriguez', 'type' => 'area', 'children' => []],
+                            ['id' => 'sala-salud-Obregon', 'name' => 'Sala de Salud Dr. Pedro Obregon', 'type' => 'area', 'children' => []],
+                            ['id' => 'sala-salud-Juana', 'name' => 'Sala de Salud Juana Garin de Benta', 'type' => 'area', 'children' => []],
                         ]
-                 
                     ],
-                  
                     ['id' => 'coord-club-dia', 'name' => 'Coordinación Club de Día', 'type' => 'coordinacion', 'children' => []],
-
                     ['id' => 'sub-discapacidad', 'name' => 'Subdirección de Discapacidad', 'type' => 'subdireccion', 'children' => []],
                     ['id' => 'coord-salud', 'name' => 'Coordinación de Salud', 'type' => 'coordinacion', 'children' => []],
                 ]
