@@ -585,44 +585,52 @@ async function handleXlsxImportFile(file) {
         }
 
         const mappedJson = json
-            .filter(row => Object.keys(row).length > 0)
-            .map(row => {
-                const newRow = {};
-                for (const key in row) {
-                    const lowerKey = key.toLowerCase().trim().replace(/\s+/g, '');
-                    if (lowerKey.startsWith('codigo')) newRow.codigo_item = row[key];
-                    else if (lowerKey.startsWith('nombre')) newRow.nombre = row[key];
-                    else if (lowerKey.startsWith('cantidad')) newRow.cantidad = row[key];
-                    else if (lowerKey.startsWith('categor')) newRow.categoria = row[key];
-                    else if (lowerKey.startsWith('descripci')) newRow.descripcion = row[key];
-                    else if (lowerKey.startsWith('incorporaci')) {
-                        if (row[key]) {
-                            const date = new Date(row[key]);
-                            if (!isNaN(date.getTime())) {
-                                const userTimezoneOffset = date.getTimezoneOffset() * 60000;
-                                const correctedDate = new Date(date.getTime() + userTimezoneOffset);
-                                const year = correctedDate.getUTCFullYear();
-                                const month = String(correctedDate.getUTCMonth() + 1).padStart(2, '0');
-                                const day = String(correctedDate.getUTCDate()).padStart(2, '0');
-                                newRow.incorporacion = `${year}-${month}-${day}`;
-                            } else {
-                                newRow.incorporacion = null;
-                            }
-                        } else {
-                            newRow.incorporacion = null;
-                        }
-                    } else if (lowerKey.startsWith('imagen') || lowerKey.startsWith('image')) {
-                        let img = row[key] ? String(row[key]).trim() : '';
-                        if (img && !/^https?:\/\//i.test(img) && !img.startsWith('/')) {
-                            img = `uploads/${img}`;
-                        }
-                        newRow.imagePath = img || null;
-                    } else if (lowerKey.startsWith('estado')) newRow.estado = row[key];
-                    else if (lowerKey.startsWith('area')) newRow.area = row[key];
-                    else if (lowerKey.startsWith('encargado')) newRow.encargado = row[key];
+    .filter(row => Object.keys(row).length > 0)
+    .map(row => {
+        const newRow = {};
+        for (const key in row) {
+            const lowerKey = key.toLowerCase().trim().replace(/\s+/g, '');
+            if (lowerKey.startsWith('codigo')) newRow.codigo_item = row[key];
+            else if (lowerKey.startsWith('nombre')) newRow.nombre = row[key];
+            else if (lowerKey.startsWith('cantidad')) newRow.cantidad = row[key];
+            else if (lowerKey.startsWith('categor')) newRow.categoria = row[key];
+            else if (lowerKey.startsWith('descripci')) newRow.descripcion = row[key];
+            else if (lowerKey.startsWith('incorporaci')) {
+                if (row[key]) {
+                    const date = new Date(row[key]);
+                    if (!isNaN(date.getTime())) {
+                        const userTimezoneOffset = date.getTimezoneOffset() * 60000;
+                        const correctedDate = new Date(date.getTime() + userTimezoneOffset);
+                        const year = correctedDate.getUTCFullYear();
+                        const month = String(correctedDate.getUTCMonth() + 1).padStart(2, '0');
+                        const day = String(correctedDate.getUTCDate()).padStart(2, '0');
+                        newRow.incorporacion = `${year}-${month}-${day}`;
+                    } else {
+                        newRow.incorporacion = null;
+                    }
+                } else {
+                    newRow.incorporacion = null;
                 }
-                return newRow;
-            });
+            } else if (lowerKey.startsWith('imagen') || lowerKey.startsWith('image')) {
+                let img = row[key] ? String(row[key]).trim() : '';
+                if (img && !/^https?:\/\//i.test(img) && !img.startsWith('/')) {
+                    img = `uploads/${img}`;
+                }
+                newRow.imagePath = img || null;
+            } 
+            // --- CORRECCIÓN ---
+            // Ser más flexible con los nombres de columna para estado y encargado
+            else if (lowerKey.startsWith('estado') || lowerKey.startsWith('status')) {
+                 newRow.estado = row[key];
+            }
+            else if (lowerKey.startsWith('area')) newRow.area = row[key];
+            else if (lowerKey.startsWith('encargado') || lowerKey.startsWith('responsable')) {
+                 newRow.encargado = row[key];
+            }
+        }
+        return newRow;
+    });
+            
 
         const response = await fetch(`${API_URL}bulk_import.php`, {
             method: 'POST',
