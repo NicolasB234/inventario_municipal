@@ -9,7 +9,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     let allLogs = [];
 
-    // Normaliza texto (minúsculas y sin acentos)
+    const actionMap = {
+        'agregado': 'add_item',
+        'editado': 'edited',    
+        'importado': 'import',      
+        'exportado': 'exported',
+        'baja': 'decommissioned',
+        'traspaso': 'transferred' 
+    };
+
     function normalizeText(text) {
         if (!text) return '';
         return text
@@ -59,11 +67,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // Filtro avanzado
+    // Filtro avanzado (esta función no necesita cambios)
     function applyFilters() {
         const searchTerm = normalizeText(searchInput.value);
         const userTerm = normalizeText(userFilterInput.value);
-        const actionTerm = normalizeText(actionFilterInput.value);
+        const selectedAction = actionFilterInput.value;
         const dateFrom = dateFromInput.value ? new Date(dateFromInput.value) : null;
         const dateTo = dateToInput.value ? new Date(dateToInput.value) : null;
 
@@ -76,10 +84,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 log.details
             );
 
-            // Filtros combinados
+            const englishKeyword = actionMap[selectedAction];
+            const matchesAction = selectedAction === '' || (englishKeyword && log.action_type.includes(englishKeyword));
+
             const matchesText = searchTerm === '' || searchableText.includes(searchTerm);
             const matchesUser = userTerm === '' || normalizeText(log.username).includes(userTerm);
-            const matchesAction = actionTerm === '' || normalizeText(log.action_type).includes(actionTerm);
             const matchesDateFrom = !dateFrom || logDate >= dateFrom;
             const matchesDateTo = !dateTo || logDate <= dateTo;
 

@@ -76,9 +76,9 @@ export const statusOptions = [
   { value: 'N', label: 'No Apto' },
   { value: 'R', label: 'Recuperable' },
   { value: 'B', label: 'Bueno' },
-  { value: 'M', label: 'Nuevo' },
+ 
   { value: 'S', label: 'Regular' },
-  { value: 'D', label: 'De Baja' },
+ 
 ];
 
 function getShortNameNodesMap() {
@@ -689,7 +689,7 @@ function renderTable(node, items, isAdmin) {
                     <th>Incorporación</th>
                     <th>Estado</th>
                     <th>Área</th>
-                    <th>Encargado</th>
+                    <th>Responsable</th>
                 </tr></thead>
                 <tbody>
                     ${items.length === 0 ? `<tr><td colspan="10" style="text-align:center;">No se encontraron ítems.</td></tr>` :

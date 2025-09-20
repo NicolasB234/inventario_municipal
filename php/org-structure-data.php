@@ -194,7 +194,7 @@ $orgStructure = [
                     ['id' => 'salon-vieja-estacion', 'name' => 'Salón Vieja Estación', 'type' => 'area', 'children' => []],
                     ['id' => 'sub-accion-social', 'name' => 'Subdirección de Acción Social', 'type' => 'subdireccion', 'children' => []],
                     ['id' => 'coord-cim', 'name' => 'Coordinación del CIM', 'type' => 'coordinacion', 'children' => []],
-                    ['id' => 'coord-cic', 'name' => 'Coordinación del CIC', 'type' => 'coordinacion', 'children' => []],
+                    ['id' => 'coord-cic', 'name' => 'CIC Acción Social', 'type' => 'area', 'children' => []],
                     [
                         'id' => 'coord-refugio',
                         'name' => 'Coordinación de Refugio',
@@ -219,7 +219,7 @@ $orgStructure = [
                             ['id' => 'sala-salud-teresita', 'name' => 'Sala de Salud Hermana Teresita', 'type' => 'area', 'children' => []],
                             ['id' => 'sala-salud-Grossi', 'name' => 'Sala de Salud Martinez Grossi', 'type' => 'area', 'children' => []],
                             ['id' => 'sala-salud-garcia', 'name' => 'Sala de Salud Dr. Otto Garcia', 'type' => 'area', 'children' => []],
-                            ['id' => 'centro-odontologico', 'name' => 'Centro Odontológico CIC', 'type' => 'area', 'children' => []],
+                            ['id' => 'centro-odontologico', 'name' => 'CIC Salud', 'type' => 'area', 'children' => []],
                             ['id' => 'sala-salud-Ramon', 'name' => 'Sala de Salud San Ramon', 'type' => 'area', 'children' => []],
                             ['id' => 'sala-salud-Rodriguez', 'name' => 'Sala de Salud Dr. Carlos Rodriguez', 'type' => 'area', 'children' => []],
                             ['id' => 'sala-salud-Obregon', 'name' => 'Sala de Salud Dr. Pedro Obregon', 'type' => 'area', 'children' => []],
