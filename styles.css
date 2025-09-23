@@ -627,25 +627,53 @@ body.night-mode .request-header, body.night-mode .request-footer { background-co
     margin-right: 8px;
 }
 
-/* Estilo para el botón de cerrar del modal */
-#image-modal .close-modal {
-    color: #fff;
+/* ▼▼▼ NUEVOS ESTILOS PARA NAVEGACIÓN DE GALERÍA ▼▼▼ */
+.close-modal-gallery {
     position: absolute;
-    top: 10px;
-    right: 25px;
-    font-size: 35px;
+    top: 15px;
+    right: 35px;
+    color: #fff;
+    font-size: 40px;
     font-weight: bold;
     transition: 0.3s;
-    z-index: 10; /* Para que esté por encima de la imagen */
+    z-index: 3001;
+    cursor: pointer;
     text-shadow: 0 1px 5px rgba(0,0,0,0.7);
 }
 
-#image-modal .close-modal:hover,
-#image-modal .close-modal:focus {
-    color: #bbb;
-    text-decoration: none;
+.prev-gallery-btn, .next-gallery-btn {
     cursor: pointer;
+    position: absolute;
+    top: 50%;
+    width: auto;
+    padding: 16px;
+    margin-top: -50px;
+    color: white;
+    font-weight: bold;
+    font-size: 20px;
+    transition: 0.3s ease;
+    border-radius: 0 3px 3px 0;
+    user-select: none;
+    -webkit-user-select: none;
+    background-color: rgba(0,0,0,0.3);
+    z-index: 3001;
 }
+
+.prev-gallery-btn {
+    left: 0;
+    border-radius: 3px 0 0 3px;
+}
+
+.next-gallery-btn {
+    right: 0;
+    border-radius: 3px 0 0 3px;
+}
+
+.prev-gallery-btn:hover, .next-gallery-btn:hover {
+    background-color: rgba(0,0,0,0.8);
+}
+/* ▲▲▲ FIN DE NUEVOS ESTILOS ▲▲▲ */
+
 
 .notifications-list .notif-area {
     color: #e74c3c; /* Un tono de rojo moderno */

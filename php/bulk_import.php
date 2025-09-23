@@ -142,7 +142,7 @@ if ($is_admin) {
             // Estado: Mapea el valor y por defecto es 'A' (Apto).
             $statusValue = $item['estado'] ?? $item['status'] ?? '';
             $statusLabel = strtolower(trim($statusValue));
-            $statusMap = ['apto'=>'A','no apto'=>'N','recuperable'=>'R','de baja'=>'D', 'bueno' => 'B', 'nuevo' => 'M', 'regular' => 'S'];
+            $statusMap = ['apto'=>'A','no apto'=>'N','No Apto recuperable'=>'R'];
             $status = $statusMap[$statusLabel] ?? 'A'; // 'A' de Apto como default
 
             // Encargado: Por defecto es 'No Asignado' si está vacío.

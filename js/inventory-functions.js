@@ -11,8 +11,8 @@ let totalTableItems = 0;
 let currentGalleryPage = 1;
 let totalGalleryItems = 0;
 let currentFilters = {};
+let currentSortBy = 'name_asc'; // Valor de orden por defecto
 
-// --- INICIO DE LA MODIFICACIÓN ---
 /**
  * Habilita la funcionalidad de arrastrar para hacer scroll horizontal en un elemento.
  * @param {HTMLElement} element El elemento contenedor que tendrá el scroll.
@@ -24,7 +24,6 @@ function enableDragToScroll(element) {
     let scrollLeft;
 
     element.addEventListener('mousedown', (e) => {
-        // Solo iniciar el arrastre si se hace clic con el botón principal y no sobre un botón de acción
         if (e.button !== 0 || e.target.closest('button')) {
             return;
         }
@@ -32,7 +31,7 @@ function enableDragToScroll(element) {
         element.classList.add('active-drag');
         startX = e.pageX - element.offsetLeft;
         scrollLeft = element.scrollLeft;
-        e.preventDefault(); // Prevenir la selección de texto
+        e.preventDefault();
     });
 
     element.addEventListener('mouseleave', () => {
@@ -49,11 +48,10 @@ function enableDragToScroll(element) {
         if (!isDown) return;
         e.preventDefault();
         const x = e.pageX - element.offsetLeft;
-        const walk = (x - startX) * 2; // Multiplicador para que el scroll sea más sensible
+        const walk = (x - startX) * 2;
         element.scrollLeft = scrollLeft - walk;
     });
 }
-// --- FIN DE LA MODIFICACIÓN ---
 
 async function loadCategories() {
     if (areCategoriesLoaded) return;
@@ -74,11 +72,7 @@ async function loadCategories() {
 export const statusOptions = [
   { value: 'A', label: 'Apto' },
   { value: 'N', label: 'No Apto' },
-  { value: 'R', label: 'Recuperable' },
-  { value: 'B', label: 'Bueno' },
- 
-  { value: 'S', label: 'Regular' },
- 
+  { value: 'R', label: 'No Apto Recuperable' },
 ];
 
 function getShortNameNodesMap() {
@@ -147,21 +141,16 @@ export async function showItemForm(node, item = null) {
 
     const isEditing = item !== null;
     form.reset();
-
-    // --- INICIO DE LA MODIFICACIÓN ---
-    // Se añade la lógica para mostrar el área del ítem que se está editando.
+    
     const areaDisplayRow = document.getElementById('area-display-row');
     if (isEditing && item && areaDisplayRow) {
         const areaDisplayText = document.getElementById('area-display-text');
-        // Usamos el mapa de nodos para obtener el nombre del área a partir de su ID.
         const areaName = nodesMap.get(item.node_id) || 'Área no especificada';
         areaDisplayText.value = areaName;
         areaDisplayRow.style.display = 'block';
     } else if (areaDisplayRow) {
-        // Se oculta este campo si se está agregando un nuevo ítem.
         areaDisplayRow.style.display = 'none';
     }
-    // --- FIN DE LA MODIFICACIÓN ---
 
     const areaSelectionRow = document.getElementById('area-selection-row');
     const nodeIdInput = form.querySelector('[name="node_id"]');
@@ -407,8 +396,9 @@ function exportToXLSX(node, items) {
     XLSX.writeFile(workbook, `inventario_${node.id || 'global'}_pag_${currentTablePage}.xlsx`);
 }
 
-export async function displayInventory(node, isAdmin = false, page = 1, filters = {}) {
+export async function displayInventory(node, isAdmin = false, page = 1, filters = {}, sortBy = 'name_asc') {
     currentFilters = filters;
+    currentSortBy = sortBy; // Guardar el estado de ordenación
     const tableView = document.getElementById('table-view');
     const galleryView = document.getElementById('gallery-view');
 
@@ -422,6 +412,7 @@ export async function displayInventory(node, isAdmin = false, page = 1, filters 
         node_id: node.id || '',
         page: page,
         limit: ITEMS_PER_PAGE,
+        sort_by: sortBy, // Enviar el parámetro de ordenación
         ...filters
     });
 
@@ -464,7 +455,17 @@ async function setupInventoryUI(node, items, isAdmin) {
             <button id="add-item-btn"><i class="fas fa-plus"></i> Agregar Item</button>
             <button id="transfer-item-btn"><i class="fas fa-random"></i> Traspasar Item</button>
             <button id="toggle-filters-btn"><i class="fas fa-filter"></i> Filtros</button>
-        </div>
+            
+            <div class="sort-by-container" style="display: flex; align-items: center; gap: 8px;">
+                <label for="sort-by-select" style="font-weight: 600; font-size: 0.9em;">Ordenar por:</label>
+                <select id="sort-by-select">
+                    <option value="name_asc">Nombre (A-Z)</option>
+                    <option value="name_desc">Nombre (Z-A)</option>
+                    <option value="date_desc">Más Recientes</option>
+                    <option value="date_asc">Más Antiguos</option>
+                </select>
+            </div>
+            </div>
         <div class="filter-controls-container">
             <div class="filter-row"><label for="filter-codigo">Buscar por Código:</label><input type="text" id="filter-codigo" placeholder="Código del ítem"></div>
             <div class="filter-row"><label for="filter-name">Buscar por Nombre:</label><input type="text" id="filter-name" placeholder="Nombre del ítem"></div>
@@ -485,6 +486,24 @@ async function setupInventoryUI(node, items, isAdmin) {
         showTransferForm(node, ctx.items || []);
     });
     
+    // Asignar el valor de ordenación actual al select
+    const sortBySelect = document.getElementById('sort-by-select');
+    sortBySelect.value = currentSortBy;
+
+    // Listener para el cambio de ordenación
+    sortBySelect.addEventListener('change', () => {
+        const sortByValue = sortBySelect.value;
+        const currentFilters = {
+            filter_codigo: document.getElementById('filter-codigo').value.trim(),
+            filter_name: document.getElementById('filter-name').value.trim(),
+            filter_category: document.getElementById('filter-category').value,
+            filter_status: document.getElementById('filter-status').value,
+            filter_date_from: document.getElementById('filter-date-from').value,
+            filter_date_to: document.getElementById('filter-date-to').value,
+        };
+        displayInventory(node, isAdmin, 1, currentFilters, sortByValue);
+    });
+
     setupHeaderActions();
 
     const filterControls = controlsContainer.querySelector('.filter-controls-container');
@@ -505,12 +524,14 @@ async function setupInventoryUI(node, items, isAdmin) {
             filter_date_from: document.getElementById('filter-date-from').value,
             filter_date_to: document.getElementById('filter-date-to').value,
         };
-        displayInventory(node, isAdmin, 1, filters);
+        const sortByValue = document.getElementById('sort-by-select').value;
+        displayInventory(node, isAdmin, 1, filters, sortByValue);
     });
 
     document.getElementById('reset-filters-btn').addEventListener('click', () => {
         filterControls.querySelectorAll('input, select').forEach(el => el.value = '');
-        displayInventory(node, isAdmin, 1, {});
+        const sortByValue = document.getElementById('sort-by-select').value;
+        displayInventory(node, isAdmin, 1, {}, sortByValue);
     });
 }
 
@@ -633,8 +654,6 @@ async function handleXlsxImportFile(file) {
                         }
                         newRow.imagePath = img || null;
                     } 
-                    // --- CORRECCIÓN ---
-                    // Ser más flexible con los nombres de columna para estado y encargado
                     else if (lowerKey.startsWith('estado') || lowerKey.startsWith('status')) {
                          newRow.estado = row[key];
                     }
@@ -689,7 +708,7 @@ function renderTable(node, items, isAdmin) {
                     <th>Incorporación</th>
                     <th>Estado</th>
                     <th>Área</th>
-                    <th>Responsable</th>
+                    <th>Encargado</th>
                 </tr></thead>
                 <tbody>
                     ${items.length === 0 ? `<tr><td colspan="10" style="text-align:center;">No se encontraron ítems.</td></tr>` :
@@ -732,10 +751,10 @@ function renderTable(node, items, isAdmin) {
 
     if (totalPages > 1) {
         document.getElementById('prev-table-page').onclick = () => {
-            if (currentTablePage > 1) displayInventory(node, isAdmin, currentTablePage - 1, currentFilters);
+            if (currentTablePage > 1) displayInventory(node, isAdmin, currentTablePage - 1, currentFilters, currentSortBy);
         };
         document.getElementById('next-table-page').onclick = () => {
-            if (currentTablePage < totalPages) displayInventory(node, isAdmin, currentTablePage + 1, currentFilters);
+            if (currentTablePage < totalPages) displayInventory(node, isAdmin, currentTablePage + 1, currentFilters, currentSortBy);
         };
     }
 
@@ -757,7 +776,7 @@ function renderTable(node, items, isAdmin) {
                     const result = await response.json();
                     alert(result.message || 'Operación completada.');
                     if (result.success) {
-                        displayInventory(node, isAdmin, currentTablePage, currentFilters);
+                        displayInventory(node, isAdmin, currentTablePage, currentFilters, currentSortBy);
                     }
                 } catch (error) {
                     console.error('Error al dar de baja:', error);
@@ -813,10 +832,10 @@ function renderGallery(node, items, isAdmin) {
         `;
 
         document.getElementById('prev-gallery-page').onclick = () => {
-            if (currentGalleryPage > 1) displayInventory(node, isAdmin, currentGalleryPage - 1, currentFilters);
+            if (currentGalleryPage > 1) displayInventory(node, isAdmin, currentGalleryPage - 1, currentFilters, currentSortBy);
         };
         document.getElementById('next-gallery-page').onclick = () => {
-            if (currentGalleryPage < totalPages) displayInventory(node, isAdmin, currentGalleryPage + 1, currentFilters);
+            if (currentGalleryPage < totalPages) displayInventory(node, isAdmin, currentGalleryPage + 1, currentFilters, currentSortBy);
         };
     }
 }

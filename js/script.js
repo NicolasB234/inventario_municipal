@@ -437,7 +437,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 nodeNameSpan.className = 'node-name';
 
                 if (node.children && node.children.length > 0) {
-                    // --- MODIFICACIÓN DE ÍCONO ---
                     toggle.innerHTML = '<i class="fas fa-bars"></i>';
                 }
 
@@ -461,8 +460,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         function toggleNode(liElement) {
             liElement.classList.toggle('expanded');
-            // --- MODIFICACIÓN DE ÍCONO ---
-            // Ya no es necesario cambiar el ícono al hacer clic.
         }
 
         const sidebarToggleBtn = document.getElementById('sidebar-toggle-btn');
@@ -475,7 +472,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (sidebarToggleBtn) sidebarToggleBtn.addEventListener('click', openSidebar);
         if (sidebarOverlay) sidebarOverlay.addEventListener('click', closeSidebar);
 
-        // CAMBIO: Esta función ahora construye el mensaje de bienvenida dinámico
         function selectNode(liElement, node) {
             if (selectedNodeElement) {
                 selectedNodeElement.classList.remove('selected');
@@ -492,15 +488,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
             
-            // --- LÓGICA DEL MENSAJE DE BIENVENIDA DINÁMICO ---
             let title = `Bienvenido`;
             if (isAdmin) {
                 title += ` Jefe de Área`;
             }
             title += ` ${currentUsername}`;
-
-            
-            // --- FIN DE LA LÓGICA ---
 
             displayInventory({ id: node.id, name: node.name }, isAdmin);
         }
@@ -543,7 +535,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         function init() {
             orgNav.innerHTML = '';
             
-            // CAMBIO: Mensaje de bienvenida inicial
             let welcomeMessage = `Bienvenido`;
             if (isAdmin) {
                 welcomeMessage += ` Jefe de Área`;
@@ -586,14 +577,83 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         init();
         
-        const chatbotContainer = document.getElementById('chatbot-container');
-        const chatbotToggleBtn = document.getElementById('chatbot-toggle-btn');
-        const closeChatbotBtn = document.getElementById('close-chatbot-btn');
+        // --- ▼▼▼ LÓGICA COMBINADA ▼▼▼ ---
 
-        if (chatbotToggleBtn && chatbotContainer && closeChatbotBtn) {
-            const toggleChatbot = () => chatbotContainer.classList.toggle('active');
-            chatbotToggleBtn.addEventListener('click', toggleChatbot);
-            closeChatbotBtn.addEventListener('click', toggleChatbot);
+        // 1. Lógica para el botón de descarga del protocolo
+        const downloadProtocolBtn = document.getElementById('download-protocol-btn');
+        if (downloadProtocolBtn) {
+            downloadProtocolBtn.addEventListener('click', () => {
+                // Se añade un mensaje de confirmación antes de la descarga.
+                if (confirm("¿Desea descargar la información sobre el Protocolo de Carga?")) {
+                    const link = document.createElement('a');
+                    link.href = 'uploads/PROTOCOLO DE CARGA.docx';
+                    link.download = 'PROTOCOLO DE CARGA.docx';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
+            });
+        }
+        
+        // 2. Lógica para la galería de imágenes con navegación
+        const imageModal = document.getElementById('image-modal');
+        let galleryItems = [];
+        let currentImageIndex = -1;
+
+        function updateModalContent(index) {
+            if (index < 0 || index >= galleryItems.length) return;
+            
+            currentImageIndex = index;
+            const data = galleryItems[index].dataset;
+            
+            document.getElementById('modal-image').src = data.imgSrc;
+            document.getElementById('modal-item-name').textContent = data.name;
+            document.getElementById('modal-item-description').textContent = data.description;
+            document.getElementById('modal-item-category').textContent = data.category;
+            document.getElementById('modal-item-quantity').textContent = data.quantity;
+            document.getElementById('modal-item-status').textContent = data.status;
+            document.getElementById('modal-item-date').textContent = data.date;
+        }
+
+        if (imageModal) {
+            const closeBtn = imageModal.querySelector('.close-modal-gallery');
+            const prevBtn = imageModal.querySelector('.prev-gallery-btn');
+            const nextBtn = imageModal.querySelector('.next-gallery-btn');
+
+            const closeModal = () => imageModal.style.display = "none";
+            
+            if(closeBtn) closeBtn.addEventListener('click', closeModal);
+            imageModal.addEventListener('click', (e) => {
+                 if (e.target === imageModal) closeModal();
+            });
+
+            if(prevBtn) {
+                prevBtn.addEventListener('click', () => {
+                    const newIndex = (currentImageIndex - 1 + galleryItems.length) % galleryItems.length;
+                    updateModalContent(newIndex);
+                });
+            }
+
+            if(nextBtn) {
+                nextBtn.addEventListener('click', () => {
+                    const newIndex = (currentImageIndex + 1) % galleryItems.length;
+                    updateModalContent(newIndex);
+                });
+            }
+        }
+        
+        const galleryView = document.getElementById('gallery-view');
+        if(galleryView) {
+            galleryView.addEventListener('click', (event) => {
+                const card = event.target.closest('.gallery-card');
+                if (card && imageModal) {
+                    galleryItems = Array.from(galleryView.querySelectorAll('.gallery-card'));
+                    const clickedIndex = galleryItems.findIndex(item => item === card);
+                    
+                    updateModalContent(clickedIndex);
+                    imageModal.style.display = "flex";
+                }
+            });
         }
 
         const orgSearchInput = document.getElementById('org-search-input');
@@ -626,41 +686,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                         const toggle = li.querySelector('.toggle');
                         if(toggle && toggle.textContent === '▾') toggle.textContent = '▸';
                      });
-                }
-            });
-        }
-        
-        const imageModal = document.getElementById('image-modal');
-        if (imageModal) {
-            const closeBtn = imageModal.querySelector('#close-image-modal');
-            if(closeBtn) {
-                closeBtn.addEventListener('click', () => {
-                    imageModal.style.display = "none";
-                });
-            }
-            imageModal.addEventListener('click', (e) => {
-                 if (e.target.classList.contains('modal-overlay')) {
-                    imageModal.style.display = "none";
-                 }
-            });
-        }
-        
-        const galleryView = document.getElementById('gallery-view');
-        if(galleryView) {
-            galleryView.addEventListener('click', (event) => {
-                const card = event.target.closest('.gallery-card');
-                if (card && imageModal) {
-                    const data = card.dataset;
-                    
-                    document.getElementById('modal-image').src = data.imgSrc;
-                    document.getElementById('modal-item-name').textContent = data.name;
-                    document.getElementById('modal-item-description').textContent = data.description;
-                    document.getElementById('modal-item-category').textContent = data.category;
-                    document.getElementById('modal-item-quantity').textContent = data.quantity;
-                    document.getElementById('modal-item-status').textContent = data.status;
-                    document.getElementById('modal-item-date').textContent = data.date;
-
-                    imageModal.style.display = "flex";
                 }
             });
         }
