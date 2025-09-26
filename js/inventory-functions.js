@@ -1,7 +1,7 @@
 import { orgStructure } from './org-structure.js';
 
 const API_URL = 'php/';
-const ITEMS_PER_PAGE = 14;
+const ITEMS_PER_PAGE = 20;
 
 // --- ESTADO GLOBAL (simplificado) ---
 let dynamicCategories = []; 
@@ -373,9 +373,12 @@ function showTransferForm(node, items) {
     });
 }
 
-function exportToXLSX(node, items) {
+// ** INICIO DE CÓDIGO ACTUALIZADO PARA LA EXPORTACIÓN **
+
+/* Reemplazar la función `exportToXLSX` con esta versión actualizada */
+function exportToXLSX(node, items, isFullExport = false, titleSuffix = '') {
     if (items.length === 0) {
-        alert('No hay datos en la página actual para exportar.');
+        alert('No hay datos para exportar.');
         return;
     }
     const dataToExport = items.map(item => ({
@@ -393,7 +396,36 @@ function exportToXLSX(node, items) {
     const worksheet = XLSX.utils.json_to_sheet(dataToExport);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Inventario");
-    XLSX.writeFile(workbook, `inventario_${node.id || 'global'}_pag_${currentTablePage}.xlsx`);
+    
+    const pageOrFull = isFullExport ? 'completo' : `pag_${currentTablePage}`;
+    const filename = `inventario_${node.id || 'global'}_${pageOrFull}${titleSuffix}.xlsx`;
+
+    XLSX.writeFile(workbook, filename);
+}
+
+/* Agregar la nueva función `exportAllToXLSX` */
+async function exportAllToXLSX(node, filters) {
+    const params = new URLSearchParams({
+        node_id: node.id || '',
+        ...filters,
+        limit: 99999, // Un límite muy alto para obtener todos los items
+        page: 1, // Siempre la primera página para la exportación completa
+        sort_by: currentSortBy // Mantener el orden de la vista
+    });
+
+    try {
+        const response = await fetch(`${API_URL}get_inventory.php?${params.toString()}`);
+        const result = await response.json();
+        if (result.success) {
+            exportToXLSX(node, result.data, true);
+        } else {
+            alert('Error al obtener los datos completos para la exportación.');
+            console.error('Error al obtener todos los datos:', result.message);
+        }
+    } catch (error) {
+        alert('Error de conexión al obtener los datos para la exportación.');
+        console.error('Error de red:', error);
+    }
 }
 
 export async function displayInventory(node, isAdmin = false, page = 1, filters = {}, sortBy = 'name_asc') {
@@ -545,7 +577,7 @@ function setupHeaderActions() {
     const importBtn = document.getElementById('import-btn-header');
     const fileInput = document.getElementById('xlsx-file-input-header');
     const exportXlsxBtn = document.getElementById('export-xlsx-header');
-    const exportDocxBtn = document.getElementById('export-docx-header');
+    const exportPdfBtn = document.getElementById('export-pdf-header'); 
 
     if (!headerBtn || !headerWrapper || !headerMenu) {
         window.headerActionsInitialized = false;
@@ -591,18 +623,29 @@ function setupHeaderActions() {
     if (exportXlsxBtn) {
         exportXlsxBtn.addEventListener('click', () => {
             const ctx = window.currentInventoryContext || {};
+            const hasFilters = Object.values(currentFilters).some(value => value && value.length > 0);
+
             if (!ctx.items || ctx.items.length === 0) {
                 alert('No hay datos para exportar en la vista actual.');
             } else {
-                exportToXLSX(ctx.node || { id: 'global' }, ctx.items);
+                if (hasFilters) {
+                    exportToXLSX(ctx.node || { id: 'global' }, ctx.items, false, '_filtrado');
+                } else {
+                    exportAllToXLSX(ctx.node || { id: 'global' }, currentFilters);
+                }
             }
             closeMenu();
         });
     }
 
-    if (exportDocxBtn) {
-        exportDocxBtn.addEventListener('click', () => {
-            alert('La funcionalidad de exportar a DOCX estará disponible próximamente.');
+    if (exportPdfBtn) {
+        exportPdfBtn.addEventListener('click', () => {
+            const ctx = window.currentInventoryContext || {};
+            if (!ctx.items || ctx.items.length === 0) {
+                alert('No hay datos para generar el informe en la vista actual.');
+            } else {
+                exportToPrintableReport(ctx.node || { id: 'global', name: 'Global' }, ctx.items);
+            }
             closeMenu();
         });
     }
@@ -838,4 +881,103 @@ function renderGallery(node, items, isAdmin) {
             if (currentGalleryPage < totalPages) displayInventory(node, isAdmin, currentGalleryPage + 1, currentFilters, currentSortBy);
         };
     }
+}
+function exportToPrintableReport(node, items) {
+    if (items.length === 0) {
+        alert('No hay datos en la página actual para generar el informe.');
+        return;
+    }
+
+    const reportWindow = window.open('', '_blank');
+    reportWindow.document.write('<html><head><title>Acta de Inventario y Responsabilidad Patrimonial</title>');
+    
+    reportWindow.document.write(`
+        <style>
+            body { font-family: sans-serif; margin: 40px; font-size: 11pt; }
+            .header, .footer { text-align: center; }
+            .header h1 { margin: 0; font-size: 16pt; }
+            .header h2 { font-size: 14pt; }
+            .header p { margin: 5px 0; }
+            .content { margin-top: 30px; }
+            .content > p { text-align: justify; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 10pt; }
+            th, td { border: 1px solid #000; padding: 6px; text-align: left; }
+            th { background-color: #e0e0e0; }
+            .signatures { margin-top: 40px; }
+            .signature-container { margin-top: 80px; width: 100%; display: table; }
+            .signature-box { display: table-cell; width: 50%; text-align: center; }
+            .signature-box p { margin: 2px 0; }
+        </style>
+    `);
+    reportWindow.document.write('</head><body>');
+
+    // --- CORRECCIÓN APLICADA AQUÍ ---
+    const currentDate = new Date().toLocaleDateString('es-AR');
+
+    reportWindow.document.write(`
+        <div class="header">
+            <h1>MUNICIPALIDAD DE CURUZÚ CUATIÁ</h1>
+            <p>Dirección de Control Patrimonial</p>
+            <p>Berón de Astrada 565- (3460) Curuzú Cuatiá - Corrientes</p>
+            <h2>ACTA DE INVENTARIO Y RESPONSABILIDAD PATRIMONIAL</h2>
+        </div>
+        <div class="content">
+            <p><strong>Funcionario Responsable:</strong> _________________________________________________</p>
+            <p><strong>Cargo:</strong> _________________________________________________________________</p>
+            <p><strong>Área / Subárea:</strong> ${node.name || 'Todas las Áreas'}</p>
+            <p><strong>DNI N°:</strong> _________________________</p>
+            <p><strong>Fecha de recepción:</strong> ${currentDate}</p>
+            <p>En mi carácter de Director de Control Patrimonial de la Municipalidad de Curuzú Cuatiá, hago entrega al funcionario arriba mencionado de los bienes que se detallan en el presente documento, los cuales pasan a su cargo para el buen uso, conservación y destino exclusivo de las funciones propias de su área, quedando el mismo responsable patrimonial de los mismos a partir de la fecha consignada.</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre del bien</th>
+                        <th>Cantidad</th>
+                        <th>Descripción</th>
+                        <th>Categoría</th>
+                        <th>Incorporación</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${items.map(item => `
+                        <tr>
+                            <td>${item.codigo_item || ''}</td>
+                            <td>${item.name}</td>
+                            <td>${item.quantity}</td>
+                            <td>${item.description || ''}</td>
+                            <td>${item.category}</td>
+                            <td>${item.incorporacion || 'N/A'}</td>
+                            <td>${statusOptions.find(s => s.value === item.status)?.label || item.status}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+            <div class="signatures">
+                <p><strong>Declaración del Funcionario Responsable:</strong> Declaro haber recibido en este acto los bienes consignados en el presente documento, comprometiéndome a su uso responsable, guarda, conservación y mantenimiento, y a comunicar oportunamente cualquier modificación en su estado, destino o localización.</p>
+                <div class="signature-container">
+                    <div class="signature-box">
+                        <p><strong>Entregado por:</strong></p>
+                        <p style="padding-top: 60px;">_________________________</p>
+                        <p>Director de Control Patrimonial</p>
+                    </div>
+                    <div class="signature-box">
+                        <p><strong>Recibido por:</strong></p>
+                        <p style="padding-top: 60px;">_________________________</p>
+                        <p>[Nombre y Apellido del Funcionario Responsable]</p>
+                        <p style="padding-top: 60px;">_________________________</p>
+                        <p>[DNI]</p>
+                        <p style="padding-top: 60px;">_________________________</p>
+                        <p>[Cargo]</p>
+                    </div>
+                </div>
+                 <p style="text-align: center; margin-top: 40px;"><strong>Fecha:</strong> ${currentDate}</p>
+            </div>
+        </div>
+    `);
+
+    reportWindow.document.write('</body></html>');
+    reportWindow.document.close();
+    reportWindow.print();
 }

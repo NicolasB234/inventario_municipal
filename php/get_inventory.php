@@ -7,7 +7,7 @@ $response = ['success' => false, 'data' => [], 'total' => 0];
 $node_id = $_GET['node_id'] ?? '';
 $is_admin = $_SESSION['is_admin'] ?? false;
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-$limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 14;
+$limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 20;
 $offset = ($page - 1) * $limit;
 
 if (empty($node_id) && !$is_admin) {

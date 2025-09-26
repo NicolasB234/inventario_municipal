@@ -5,14 +5,23 @@ header('Content-Type: application/json');
 $response = ['success' => false, 'data' => []];
 
 try {
-    // Consulta para obtener todas las categorías únicas que no estén vacías o nulas, ordenadas alfabéticamente.
-    $result = $conn->query("SELECT DISTINCT category FROM inventory_items WHERE category IS NOT NULL AND category != '' ORDER BY category ASC");
+    // --- INICIO DE LA MODIFICACIÓN ---
+    // Se reemplaza la consulta a la base de datos por una lista fija de categorías.
+    // Ahora puedes editar esta lista directamente para cambiar las opciones en el formulario.
+    $categories = [
+        "Equipos Informáticos y Sistemas",
+        "Equipos Eléctricos",
+        "Audiovisuales",
+        "Rodados",
+        "Maquinarias y Equipo Pesado",
+        "Repuestos e insumos de alto valor",
+        "Instrumental de Salud",
+        "Elementos de señalizacion y carteleria",
+        "Elementos de Cocina",
+        
+    ];
+    // --- FIN DE LA MODIFICACIÓN ---
     
-    $categories = [];
-    while ($row = $result->fetch_assoc()) {
-        $categories[] = $row['category'];
-    }
-
     $response['success'] = true;
     $response['data'] = $categories;
 
